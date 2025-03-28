@@ -6,9 +6,6 @@ import { validateSignInWithGoogleSchema, validateLoginWithEmailSchema } from '..
 const authRouter = express.Router();
 const authController = new AuthController();
 
-/**
- * @author Prince Gupta
- */
 authRouter.post("/signInWithGoogle",[ validateSignInWithGoogleSchema ], authController.signInWithGoogle); // for app users
 authRouter.post("/loginWithEmail", [ validateLoginWithEmailSchema ], authController.loginWithEmail) // for admins
 

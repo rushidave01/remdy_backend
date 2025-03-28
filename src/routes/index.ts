@@ -11,12 +11,18 @@ import { verifyUserAuthMiddleware, verifyAdminAuthMiddleware } from '../middlewa
 
 const router = Router();
 
+/**
+ * MOBILE APIS
+ */
 router.use("/auth", authRoutes);
 router.use('/homepage', [verifyUserAuthMiddleware], homepageRouter);
 router.use("/user", [verifyUserAuthMiddleware], userRouter);
 router.use("/hospitals", [verifyUserAuthMiddleware], hospitalRoutes);
 router.use("/public", [verifyUserAuthMiddleware], publicRouter);
 
+/**
+ * DASHBOARD APIS
+ */
 router.use("/admin", [verifyAdminAuthMiddleware], adminRouter);
 
 export default router;
