@@ -97,6 +97,9 @@ export class User extends BaseEntity {
   @OneToMany(() => Wishlist, (wishlist) => wishlist.user)
   wishlist!: Wishlist[];
 
+  // @OneToMany(() => LoginHistories, (loginHistory) => loginHistory.user)
+  // login_history?: LoginHistories[];
+
   @CreateDateColumn()
   created_at!: Date;
 
