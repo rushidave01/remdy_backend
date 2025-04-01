@@ -1,3 +1,4 @@
+import { user_notification_type, UserRole } from "src/enums";
 import { getDataSource } from "../config/database";
 import { NotificationRequestDto } from "../dto/req/notification.request.dto";
 import { NotificationResponseDto } from "../dto/res/notification.response.dto";
@@ -25,8 +26,9 @@ export class NotificationService {
       latitude,
       longitude,
       location,
-      notificationType,
-      userNotificationType,
+      location_range,
+      notification_type,
+      user_notification_type,
     } = notificationDto;
     const notificationRepository = this.getNotificationRepository();
 
@@ -38,8 +40,9 @@ export class NotificationService {
         latitude,
         longitude,
         location,
-        notification_type: notificationType,
-        user_notification_type: userNotificationType,
+        location_range,
+        notification_type,
+        user_notification_type,
       });
 
       const savedNotification = await notificationRepository.save(notification);
@@ -55,17 +58,40 @@ export class NotificationService {
    * @param options
    * @returns
    */
-  async getAllNotifications(options: { page: number; size: number }) {
-    const { page, size } = options;
+  async getAllNotifications(options: {
+    page: number;
+    size: number;
+    search?: string;
+    user_role_type: UserRole;
+  }) {
+    const { page, size, search, user_role_type } = options;
     const { limit, offset } = getPagination(page, size);
 
     try {
-      const [notifications, total] =
-        await this.getNotificationRepository().findAndCount({
-          order: { created_at: "DESC" },
-          skip: offset,
-          take: limit,
+      const queryBuilder = this.getNotificationRepository()
+        .createQueryBuilder("notifications")
+        .orderBy("notifications.created_at", "DESC")
+        .skip(offset)
+        .take(limit);
+
+      // Apply search filter if provided
+      if (search) {
+        queryBuilder.andWhere("notifications.title ILIKE :search", {
+          search: `%${search}%`,
         });
+      }
+
+      // Apply user_role_type filter if provided
+      if (user_role_type) {
+        queryBuilder.andWhere(
+          "notifications.user_notification_type = :user_role_type",
+          {
+            user_role_type,
+          }
+        );
+      }
+
+      const [notifications, total] = await queryBuilder.getManyAndCount();
 
       const formattedNotifications = notifications.map(
         (n) => new NotificationResponseDto(n)

@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { UserRole } from "src/enums";
 import { NotificationRequestDto } from "../dto/req/notification.request.dto";
 import { ApiResponseDto } from "../dto/res/api.response.dto";
 import { NotificationResponseDto } from "../dto/res/notification.response.dto";
@@ -64,14 +65,17 @@ export class NotificationController {
    */
   async getAllNotifications(req: Request, res: Response): Promise<Response> {
     try {
-      const { page = "1", size = "10" } = req.query as {
-        page?: string;
-        size?: string;
-      };
+      // Search notification by it's title
+      const { search, user_role_type } = req.query; 
+      const userRoleType = user_role_type as UserRole;
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const size = req.query.size ? parseInt(req.query.size as string) : 10;
 
       const notifications = await notificationService.getAllNotifications({
         page: Number(page),
         size: Number(size),
+        search: search as string,
+        user_role_type: userRoleType,
       });
 
       return res

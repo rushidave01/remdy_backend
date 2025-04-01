@@ -6,8 +6,9 @@ export class NotificationRequestDto {
   latitude?: number;
   longitude?: number;
   location?: string;
-  notificationType!: notification_type;
-  userNotificationType!: user_notification_type;
+  location_range?: string;
+  notification_type!: notification_type;
+  user_notification_type!: user_notification_type;
 }
 
 export class GetNotificationsRequestDto {
