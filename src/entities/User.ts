@@ -11,7 +11,14 @@ import {
 } from "typeorm";
 
 import { Gender, UserRole, logged_in_with } from "../enums";
-import { DoctorDetails, PatientRequest, PatientLocation, Reviews, Wishlist, PatientDetails, LoginHistories } from "./index";
+import {
+  DoctorDetails,
+  PatientDetails,
+  PatientLocation,
+  PatientRequest,
+  Reviews,
+  Wishlist,
+} from "./index";
 
 @Entity("users")
 @Unique("UQ_MOBILE", ["user_mobile"])
@@ -88,7 +95,7 @@ export class User extends BaseEntity {
   reviews!: Reviews[];
 
   @OneToMany(() => Wishlist, (wishlist) => wishlist.user)
-  wishlist!: Reviews[];
+  wishlist!: Wishlist[];
 
   // @OneToMany(() => LoginHistories, (loginHistory) => loginHistory.user)
   // login_history?: LoginHistories[];

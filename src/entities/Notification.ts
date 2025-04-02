@@ -1,17 +1,17 @@
 import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
+import {
   notification_status,
   notification_type,
   user_notification_type,
 } from "../enums";
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-  BaseEntity,
-} from "typeorm";
 
 @Entity("notifications")
 export class Notifications extends BaseEntity {
