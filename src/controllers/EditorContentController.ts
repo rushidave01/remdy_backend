@@ -35,26 +35,27 @@ export class EditorContentController {
     try {
       const { type } = req.query;
 
-      const contentData = await editorContentService.getContentByType(type as string);
-
-      return res.status(200).json(
-        new ApiResponseDto(
-          true,
-          "Content fetched successfully",
-          contentData
-        )
+      const contentData = await editorContentService.getContentByType(
+        type as string
       );
+
+      return res
+        .status(200)
+        .json(
+          new ApiResponseDto(true, "Content fetched successfully", contentData)
+        );
     } catch (error) {
       console.error("Error fetching content:", error);
-      return res.status(500).json(
-        new ApiResponseDto(
-          false,
-          "Error while fetching content.",
-          undefined,
-          error
-        )
-      );
+      return res
+        .status(500)
+        .json(
+          new ApiResponseDto(
+            false,
+            "Error while fetching content.",
+            undefined,
+            error
+          )
+        );
     }
   }
-
 }

@@ -4,6 +4,7 @@ import { AdminController, EditorContentController } from '../controllers';
 import { NotificationController } from '../controllers/NotificationController';
 import { validateGetCustomersSchema } from '../validations/adminValidation';
 import { validateCreateEditorContent, validateGetEditorContent } from '../validations/editorContent';
+import { verifyAdminRoleMiddleware } from '../middleware/verifyAdminRoleMiddleware';
 
 const adminRouter = Router();
 const adminController = new AdminController();
@@ -20,7 +21,7 @@ adminRouter.post("/send-notification", [validateSendNotification], notificationC
 adminRouter.get("/get-notifications", [validateGetNotifications], notificationController.getAllNotifications);  // Get All Notifications (with pagination)
 
 // Static API's 
-adminRouter.post("/create-content", [validateCreateEditorContent], editorContentController.createContent);
+adminRouter.post("/create-content", [validateCreateEditorContent, verifyAdminRoleMiddleware], editorContentController.createContent);
 adminRouter.get( "/get-content", [validateGetEditorContent], editorContentController.getContentByType);
   
 export default adminRouter;
