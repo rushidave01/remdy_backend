@@ -6,3 +6,4 @@ export * from "./LoginHistoryService";
 export * from "./DoctorService";
 export * from "./HospitalService";
 export * from "./NotificationService";
+export * from "./EditorContentService";

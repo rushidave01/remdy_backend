@@ -13,3 +13,4 @@ export * from "./Notification";
 export * from "./Reviews";
 export * from "./Wishlist";
 export * from "./PatientDetails";
+export * from "./EditorContent";
