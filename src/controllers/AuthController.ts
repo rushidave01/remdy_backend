@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
+import { DoctorDetails, User } from "../entities";
 import { UserRole } from "../enums";
 import {
   AuthService,
-  UserService,
   JwtService,
   LoginHistoryService,
+  UserService,
 } from "../services";
 import { isValidPassword } from "../utils/utils";
 
@@ -14,7 +15,6 @@ const loginHistoryService = new LoginHistoryService();
 const userService = new UserService();
 
 export class AuthController {
-
   async signInWithGoogle(req: Request, res: Response): Promise<any> {
     try {
       const { googleToken, latitude, longitude, imei_number } = req.body;
@@ -30,7 +30,7 @@ export class AuthController {
 
       // Step 2: Find or Create User in Database
       // let user = await userService.findUserByEmail(googleUserData.data?.email);
-      let user = await userService.findUserByEmail('parth9540@gmail.com');
+      let user = await userService.findUserByEmail("parth9540@gmail.com");
 
       if (!user) {
         //creating user if new
@@ -87,7 +87,7 @@ export class AuthController {
         });
       }
 
-      if (user.user_role !== UserRole.admin){
+      if (user.user_role !== UserRole.admin) {
         return res.status(401).json({
           message: "invalid request!",
           success: false,
@@ -109,9 +109,9 @@ export class AuthController {
         payload: {
           email,
           user_id: user.id,
-          role: user.user_role
-        }
-      }
+          role: user.user_role,
+        },
+      };
 
       return res.status(200).json({
         message: "Admin logged in successfully",
@@ -124,6 +124,119 @@ export class AuthController {
         message: "Error while login with email and password",
         status: false,
         error: error,
+      });
+    }
+  }
+
+  /**
+   * Controller function to handle doctor registration.
+   * Checks for existing email, creates a new doctor user with related details, and saves to database.
+   * Doctor is created as inactive by default and requires admin approval.
+   */
+  async registerDoctor(req: Request, res: Response) {
+    try {
+      const { user_name, user_email, user_mobile, address } = req.body;
+
+      // Check if a doctor already exists with the given email
+      const existingDoctor = await userService.findUserByEmail(user_email);
+      if (existingDoctor) {
+        return res.status(409).json({
+          status: false,
+          message: "Doctor with this email already exists",
+        });
+      } 
+
+      // Create new doctor user instance
+      const doctor = new User();
+      doctor.user_name = user_name;
+      doctor.user_email = user_email;
+      doctor.user_role = UserRole.doctor;
+      doctor.user_mobile = user_mobile;
+      doctor.active = false; // Will be activated after approval
+
+      // Assign additional doctor details
+      const doctorDetails = new DoctorDetails();
+      doctorDetails.first_name = user_name;
+      doctorDetails.address = address;
+
+      // Associate doctor details with the user
+      doctor.doctor_details = doctorDetails;
+
+      // Save doctor and respond
+      const savedDoctor = await doctor.save();
+
+      return res.status(201).json({
+        status: true,
+        message: "Doctor registered successfully",
+        data: savedDoctor,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        status: false,
+        message: "Something went wrong, please try again later.",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  /**
+   * Controller function to handle doctor login.
+   * Validates email and password, checks for correct user role,
+   * and returns a JWT token if authentication is successful.
+   */
+  async loginDoctor(req: Request, res: Response): Promise<any> {
+    try {
+      const { user_email, user_password } = req.body;
+
+      // Find user by email
+      const user = await userService.findUserByEmail(user_email);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "No account found with this email",
+        });
+      }
+
+      // Ensure it's a doctor account
+      if (user.user_role !== UserRole.doctor) {
+        return res.status(401).json({
+          success: false,
+          message: "Access denied: not a doctor account",
+        });
+      }
+
+      // Validate password
+      const hashedPassword = user.user_password || "";
+      const isValid = await isValidPassword(user_password, hashedPassword);
+      if (!isValid) {
+        return res.status(401).json({
+          success: false,
+          message: "Incorrect password",
+        });
+      }
+
+      // Generate JWT token
+      const token = await jwtService.generateJWT(user);
+
+      return res.status(200).json({
+        success: true,
+        message: "Doctor logged in successfully",
+        data: {
+          token,
+          payload: {
+            user_email,
+            user_id: user.id,
+            role: user.user_role,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      return res.status(500).json({
+        success: false,
+        message:
+          "An error occurred during doctor login. Please try again later.",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
