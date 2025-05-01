@@ -86,4 +86,20 @@ export class MailService {
     // Send the email
     return this.sendEmail(email, subject, messageHtml);
   }
+
+  // Sends a rejection email to a doctor whose registration has been denied.
+  public async sendDoctorRejectionMail(
+    name: string,
+    email: string
+  ): Promise<nodemailer.SentMessageInfo> {
+    const subject = "Doctor Registration Update";
+    const messageHtml = `<p>Dear ${name || "Doctor"},</p>
+      <p>We regret to inform you that your registration request has been denied by the admin team.</p>
+      <p>If you believe this was a mistake or need further clarification, feel free to contact us at ${
+        process.env.SUPPORT_EMAIL
+      }.</p>
+      <p>Regards,<br/>Admin Team</p>`;
+
+    return this.sendEmail(email, subject, messageHtml);
+  }
 }

@@ -26,6 +26,6 @@ adminRouter.get( "/get-content", [validateGetEditorContent], editorContentContro
 
 // Approval
 adminRouter.get("/get-all-registered-doctors", adminController.getAllRegisteredDoctors); // Get all pending doctor registrations
-adminRouter.put("/approve-doctor/:doctorId", adminController.approveDoctor); // Approve a specific doctor by ID
+adminRouter.put("/update-doctor-status", adminController.updateDoctorStatus); // Approve/reject doctor
 
 export default adminRouter;

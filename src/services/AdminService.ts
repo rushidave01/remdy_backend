@@ -107,24 +107,17 @@ export class AdminService {
   }
 
   /**
-   * Approves a doctor's registration by activating their account.
+   * Saves and activates a doctor by setting their password and status.
    *
-   * @param doctorId - The ID of the doctor to approve.
-   * @returns The updated doctor user object if successful, otherwise null.
+   * @param doctor - The doctor entity object to approve.
+   * @param hashedPassword - The hashed password to set.
+   * @returns The updated doctor user object.
    */
   async approveDoctorRegistration(
-    doctorId: string,
+    doctor: User,
     hashedPassword: string
-  ): Promise<User | null> {
-    // Find the doctor by ID and ensure their role is 'doctor'
-    const doctor = await User.findOne({
-      where: { id: parseInt(doctorId), user_role: UserRole.doctor },
-    });
-
-    // If doctor doesn't exist or is already active, return null
-    if (!doctor || doctor.active) return null;
-
-    // Mark the doctor's account as active and set the random password first time
+  ): Promise<User> {
+    // Mark the doctor's account as active and set the random hashed password first time
     doctor.active = true;
     doctor.user_password = hashedPassword;
 

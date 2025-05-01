@@ -5,9 +5,13 @@ import { RegisteredDoctorsResponseDTO } from "../dtos/admin/Doctor/res/doctor.re
 import { AdminService } from "../services/AdminService";
 import { bcryptHash, getPagination, MailService } from "../utils";
 import logger from "../utils/logger";
+import { UpdateDoctorApprovalDto } from "src/dtos/admin/Doctor/req/doctor.request.dto";
+import { UserService } from "../services/UserService";
+import { UserRole } from "../enums";
 
 const adminService = new AdminService();
 const mailService = new MailService();
+const userService = new UserService();
 
 export class AdminController {
   constructor() {}
@@ -175,63 +179,81 @@ export class AdminController {
   }
 
   /**
-   * Controller function to approve a doctor’s registration.
-   * Activates the doctor's account and sends a welcome email with credentials.
+   * Controller to approve or reject a doctor's registration.
+   *
+   * - If `isAdminApprove` is true, generates a password, hashes it,
+   *   activates the doctor, and sends a welcome email.
+   * - If false, sends a rejection email without updating the account.
+   *
+   * @param req - Express request object containing doctorId and isAdminApprove in body
+   * @param res - Express response object
+   * @returns JSON response with success status and message
    */
-  async approveDoctor(req: Request, res: Response) {
-    // Extract doctor ID from the request parameters
-    const doctorId = req.params.doctorId;
+
+  async updateDoctorStatus(req: Request, res: Response) {
+    const { doctorId, isAdminApprove }: UpdateDoctorApprovalDto = req.body;
 
     try {
-      // Generate a secure random password (10-character alphanumeric)
-      const password = randomBytes(6)
-        .toString("base64") // Convert to base64 string
-        .replace(/[^a-zA-Z0-9]/g, "") // Remove special characters
-        .slice(0, 10); // Trim to 10 characters
-
-      // Convert plain password to hashedPassword
-      const hashedPassword = await bcryptHash(password);
-
-      // Call the service method to approve doctor registration
-      const updatedDoctor = await adminService.approveDoctorRegistration(
-        doctorId,
-        hashedPassword
-      );
+      const numericDoctorId = Number(doctorId);
+      const doctor = await userService.findUserById(numericDoctorId);
 
       // If no doctor is found or already approved, return 404
-      if (!updatedDoctor) {
-        return res.status(404).json({
-          success: false,
-          message: "Doctor not found or already approved.",
-        });
+      if (!doctor || doctor.user_role !== UserRole.doctor) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Doctor not found." });
       }
 
-      // Send a welcome email with credentials to the doctor
-      await mailService.sendDoctorWelcomeMail(
-        updatedDoctor.user_name || "",
-        updatedDoctor.user_email,
-        password
-      );
+      if (doctor.active) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Doctor already approved." });
+      }
 
-      // Log success for auditing or debugging purposes
-      logger.info(
-        `Doctor approved and email sent to ${updatedDoctor.user_email}`
-      );
+      if (isAdminApprove) {
+        // Generate a secure random password (10-character alphanumeric)
+        const password = randomBytes(6)
+          .toString("base64") // Convert to base64 string
+          .replace(/[^a-zA-Z0-9]/g, "") // Remove special characters
+          .slice(0, 10); // Trim to 10 characters
 
-      // Send a success response to the client
-      return res.status(200).json({
-        success: true,
-        message: "Doctor approved successfully and email sent.",
-        data: updatedDoctor,
-      });
+        // Convert plain password to hashedPassword
+        const hashedPassword = await bcryptHash(password);
+
+        // Call the service method to approve doctor registration
+        const updatedDoctor = await adminService.approveDoctorRegistration(
+          doctor,
+          hashedPassword
+        );
+
+        // Send a welcome email with credentials to the doctor
+        await mailService.sendDoctorWelcomeMail(
+          doctor.user_name || "",
+          doctor.user_email,
+          password
+        );
+
+        return res.status(200).json({
+          success: true,
+          message: "Doctor approved and email sent.",
+          data: updatedDoctor,
+        });
+      } else {
+        await mailService.sendDoctorRejectionMail(
+          doctor.user_name || "",
+          doctor.user_email
+        );
+
+        return res.status(200).json({
+          success: true,
+          message: "Doctor rejected and notification email sent.",
+        });
+      }
     } catch (error: any) {
-      // Log any error that occurred during the approval process
-      logger.error(`Error approving doctor: ${error.message}`);
-
-      // Return a generic server error response
+      logger.error(`Error updating doctor status: ${error.message}`);
       return res.status(500).json({
         success: false,
-        message: "Something went wrong while approving the doctor.",
+        message: "Internal server error while updating doctor status.",
       });
     }
   }
