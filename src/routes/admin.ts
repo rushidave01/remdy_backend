@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { validateSendNotification, validateGetNotifications } from '../validations/notifications';
 import { AdminController, EditorContentController } from '../controllers';
 import { NotificationController } from '../controllers/NotificationController';
+import { verifyAdminRoleMiddleware } from '../middleware/verifyAdminRoleMiddleware';
 import { validateGetCustomersSchema } from '../validations/adminValidation';
 import { validateCreateEditorContent, validateGetEditorContent } from '../validations/editorContent';
-import { verifyAdminRoleMiddleware } from '../middleware/verifyAdminRoleMiddleware';
+import { validateGetNotifications, validateSendNotification } from '../validations/notifications';
 
 const adminRouter = Router();
 const adminController = new AdminController();
@@ -23,5 +23,9 @@ adminRouter.get("/get-notifications", [validateGetNotifications], notificationCo
 // Static API's 
 adminRouter.post("/create-content", [validateCreateEditorContent, verifyAdminRoleMiddleware], editorContentController.createContent);
 adminRouter.get( "/get-content", [validateGetEditorContent], editorContentController.getContentByType);
-  
+
+// Approval
+adminRouter.get("/get-all-registered-doctors", adminController.getAllRegisteredDoctors); // Get all pending doctor registrations
+adminRouter.put("/update-doctor-status", adminController.updateDoctorStatus); // Approve/reject doctor
+
 export default adminRouter;
