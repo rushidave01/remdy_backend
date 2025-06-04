@@ -1,13 +1,22 @@
 // src/controllers/UserController.ts
 import { Request, Response } from "express";
 import { getDataSource } from "../config/database";
+import { CreatePatientRequestDto } from "../dtos";
+import { PatientRequestResponseDto } from "../dtos/user/create.patient.response.dto";
 import { PatientLocation } from "../entities";
-import { user_wislist_status } from "../enums";
-
-import { DoctorService, HospitalService, UserService } from "../services";
+import { user_wislist_status, UserRole } from "../enums";
+import {
+  DoctorService,
+  HospitalService,
+  PatientService,
+  PublicService,
+  UserService,
+} from "../services";
 const userService = new UserService();
 const doctorService = new DoctorService();
 const hospitalService = new HospitalService();
+const patientService = new PatientService();
+const publicService = new PublicService();
 
 export class UserController {
   // getWishlistRepository() {
@@ -220,7 +229,7 @@ export class UserController {
       });
     }
   }
-  
+
   async writeReview(req: Request, res: Response): Promise<any> {
     try {
       const { userId, hospitalId, doctorId, comment, rating, type } = req.body;
@@ -252,7 +261,7 @@ export class UserController {
       });
     }
   }
-  
+
   async getProfile(req: Request, res: Response): Promise<any> {
     try {
       const userId = Number(req.query.user_id);
@@ -297,6 +306,87 @@ export class UserController {
         success: false,
         message: "Error while updating profile",
         error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  async createPatientRequest(req: Request, res: Response): Promise<Response> {
+    const userService = new UserService();
+    try {
+      const data: CreatePatientRequestDto = req.body;
+
+      // Step 1: Create the user
+      const user = await userService.createUser({
+        user_name: data.full_name,
+        user_email: data.patient_email,
+        user_mobile: data.phone_number ? BigInt(data.phone_number) : undefined,
+        user_role: UserRole.patient,
+        is_verified: false,
+        active: false,
+      });
+
+      // Get Gender by genderId
+      const gender = await publicService.getGenderById(data.genderId);
+
+      // Get Province by provinceId
+      const province = await publicService.getProvinceById(data.provinceId);
+
+      // Get City by cityId
+      const city = await publicService.getCityById(data.cityId);
+ 
+      // Step 2: Create the patient request linked to the user
+      const patientRequest = await patientService.createPatientRequest({
+        full_name: data.full_name,
+        patient_email: data.patient_email,
+        phone_number: data.phone_number,
+        address: data.address,
+        city: city,
+        province: province,
+        pincode: data.pincode,
+        gender: gender,
+        dob: data.dob,
+        had_family_doctor: data.had_family_doctor,
+        doctor_name: data.doctor_name,
+        doctorId: data.doctorId,
+        user: user,
+      });
+      const responseDto = new PatientRequestResponseDto(patientRequest);
+
+      return res.status(201).json({
+        success: true,
+        message: "Patient request created successfully",
+        data: responseDto,
+      });
+    } catch (error) {
+      console.error("Error in createPatientRequest:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  }
+
+  async getApprovedDoctors(req: Request, res: Response): Promise<any> {
+    try {
+      const doctors = await userService.getApprovedDoctors();
+
+      const responseData = doctors.map((doc) => ({
+        id: doc.id,
+        name: doc.user_name,
+        email: doc.user_email,
+        CreatedAt: doc.created_at,
+      }));
+
+      return res.status(200).json({
+        success: true,
+        message: "Approved doctors fetched successfully",
+        data: responseData,
+      });
+    } catch (error) {
+      console.error("Error fetching approved doctors:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error while fetching approved doctors",
       });
     }
   }

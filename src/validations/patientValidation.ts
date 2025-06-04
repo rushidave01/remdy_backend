@@ -68,6 +68,21 @@ const commentSchema = Joi.object({
   type: Joi.string().valid("DOCTOR", "HOSPITAL").required(),
 });
 
+const patientRequestSchema = Joi.object({
+  full_name: Joi.string().required(),
+  patient_email: Joi.string().email().required(),
+  phone_number: Joi.string().required(),
+  address: Joi.string().required(),
+  cityId: Joi.number().required(),
+  provinceId: Joi.number().required(),
+  pincode: Joi.string().required(),
+  genderId: Joi.number().required(),
+  dob: Joi.date().required(),
+  had_family_doctor: Joi.string().valid("YES", "NO").required(),
+  doctor_name: Joi.string().required(),
+  doctorId: Joi.string().required(),
+});
+
 export const validateStorePatientLocationSchema = async (
   req: Request,
   res: Response,
@@ -167,6 +182,29 @@ export const validateCommentSchema = async (
 ) => {
   try {
     await commentSchema.validateAsync(req.body);
+    next();
+  } catch (error) {
+    Joi.isError(error)
+      ? res.status(422).json({
+          success: false,
+          message: error.details[0].message,
+          data: null,
+        })
+      : res.status(422).json({
+          success: false,
+          message: "An unexpected error occurred in joi validation",
+          data: null,
+        });
+  }
+};
+
+export const validatePatientRequestSchema = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    await patientRequestSchema.validateAsync(req.body);
     next();
   } catch (error) {
     Joi.isError(error)

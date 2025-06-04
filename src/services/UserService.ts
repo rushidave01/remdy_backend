@@ -191,5 +191,18 @@ export class UserService {
       return null;
     }
   }
+
+  async getApprovedDoctors(): Promise<User[]> {
+    return this.getUserRepository().find({
+      where: {
+        user_role: UserRole.doctor,
+        // is_verified: true,
+        active: true,
+      },
+      order: {
+        created_at: "DESC",
+      },
+    });
+  }
 }
 
