@@ -7,6 +7,7 @@ import {
     UpdateDateColumn,
     DeleteDateColumn,
     OneToOne,
+    OneToMany,
   } from "typeorm";
   import {DoctorDetails, PatientRequest} from "./index"
   
@@ -22,8 +23,8 @@ import {
     })
     gender?:string;
   
-    @OneToOne(() => PatientRequest, (patientRequest) => patientRequest.gender)
-    patient_request?: PatientRequest;
+    @OneToMany(() => PatientRequest, (patientRequest) => patientRequest.gender)
+    patient_request?: PatientRequest[];
 
     @OneToOne(() => DoctorDetails, (doctorDetails) => doctorDetails.gender)
     doctor_details?: DoctorDetails;

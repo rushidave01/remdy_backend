@@ -1,13 +1,17 @@
 import { randomBytes } from "crypto";
 import { Request, Response } from "express";
-import { AdminCustomerResponseDTO } from "../dtos";
-import { RegisteredDoctorsResponseDTO } from "../dtos/admin/Doctor/res/doctor.response.dto";
+import {
+  AdminCustomerResponseDTO,
+  PatientRequestResponseDto,
+  RegisteredDoctorsResponseDTO,
+} from "../dtos";
 import { AdminService } from "../services/AdminService";
 import { bcryptHash, getPagination, MailService } from "../utils";
 import logger from "../utils/logger";
-import { UpdateDoctorApprovalDto } from "src/dtos/admin/Doctor/req/doctor.request.dto";
 import { UserService } from "../services/UserService";
-import { UserRole } from "../enums";
+import { request_status, UserRole } from "../enums";
+import { UpdateDoctorApprovalDto } from "src/dtos/admin/Doctor/req/doctor.request.dto";
+import { ForwardPatientRequestDto } from "src/dtos/admin/Patient/req/forward.patient.request.dto";
 
 const adminService = new AdminService();
 const mailService = new MailService();
@@ -257,4 +261,91 @@ export class AdminController {
       });
     }
   }
+
+  async getAllRegisteredPatients(req: Request, res: Response): Promise<any> {
+    try {
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const size = req.query.size ? parseInt(req.query.size as string) : 10;
+      const { limit, offset } = getPagination(page, size);
+
+      // Fetch paginated + all patients
+      const [paginatedPatients, allPatients] =
+        await adminService.getRegisteredPatients({ limit, offset });
+
+      const formattedPatients = paginatedPatients.map(
+        (p) => new PatientRequestResponseDto(p)
+      );
+
+      const totalPatients = allPatients.length;
+      const hasMore = page * size < totalPatients;
+
+      // ----- Stats -----
+      const newRequestsCount = allPatients.filter(
+        (p) => p.request_status === request_status.pending
+      ).length;
+
+      const invitationSentCount = allPatients.filter(
+        (p) => p.sent_to !== null
+      ).length;
+
+      const invitationPendingCount = allPatients.filter(
+        (p) => p.request_status === request_status.pending && p.sent_to !== null
+      ).length;
+
+      return res.status(200).json({
+        success: true,
+        message: "Registered patients fetched successfully.",
+        data: {
+          stats: {
+            total_patients: totalPatients,
+            new_requests: newRequestsCount,
+            invitations_sent: invitationSentCount,
+            invitations_pending: invitationPendingCount,
+          },
+          grid_data: {
+            has_more: hasMore,
+            total: paginatedPatients.length,
+            patients: formattedPatients,
+          },
+        },
+      });
+    } catch (error: any) {
+      logger.error(`Error fetching patients: ${error.message}`);
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while fetching patients.",
+      });
+    }
+  }
+
+  async forwardPatientRequests(req: Request, res: Response): Promise<Response> {
+  try {
+    const data: ForwardPatientRequestDto = req.body;
+    const { patientIds, doctorId } = data;
+
+    const isBulk = patientIds.length > 1;
+
+    if (!isBulk && !doctorId) {
+      return res.status(400).json({
+        success: false,
+        message: "Doctor ID is required for single patient forwarding.",
+      });
+    }
+
+    const result = await adminService.forwardPatients(patientIds, doctorId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Patient(s) forwarded successfully.",
+      data: result,
+    });
+  } catch (error: any) {
+    logger.error(`Error forwarding patient requests: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while forwarding patient(s).",
+    });
+  }
+}
+
 }

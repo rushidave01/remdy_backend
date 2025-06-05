@@ -4,7 +4,7 @@ import { getDataSource } from "../config/database";
 import { CreatePatientRequestDto } from "../dtos";
 import { PatientRequestResponseDto } from "../dtos/user/create.patient.response.dto";
 import { PatientLocation } from "../entities";
-import { user_wislist_status, UserRole } from "../enums";
+import { request_status, user_wislist_status, UserRole } from "../enums";
 import {
   DoctorService,
   HospitalService,
@@ -333,7 +333,7 @@ export class UserController {
 
       // Get City by cityId
       const city = await publicService.getCityById(data.cityId);
- 
+
       // Step 2: Create the patient request linked to the user
       const patientRequest = await patientService.createPatientRequest({
         full_name: data.full_name,
@@ -349,6 +349,7 @@ export class UserController {
         doctor_name: data.doctor_name,
         doctorId: data.doctorId,
         user: user,
+        request_status: request_status.pending,
       });
       const responseDto = new PatientRequestResponseDto(patientRequest);
 
@@ -357,11 +358,33 @@ export class UserController {
         message: "Patient request created successfully",
         data: responseDto,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in createPatientRequest:", error);
+
+      // Handle duplicate constraint
+      if (error.code === "23505") {
+        const match = /Key \((.*?)\)=\((.*?)\)/.exec(error.detail);
+        const field = match?.[1];
+        const value = match?.[2];
+
+        return res.status(409).json({
+          success: false,
+          message: `Duplicate entry: ${field} '${value}' already exists.`,
+        });
+      }
+
+      // Handle missing foreign key (e.g. invalid gender/city/province)
+      if (error.code === "23503") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid reference to related entity (gender, city, etc.)",
+        });
+      }
+
+      // General fallback error
       return res.status(500).json({
         success: false,
-        message: "Internal server error",
+        message: "Something went wrong while creating patient request.",
       });
     }
   }

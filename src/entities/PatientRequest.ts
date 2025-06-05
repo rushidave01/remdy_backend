@@ -37,13 +37,16 @@ export class PatientRequest extends BaseEntity {
 
   @Column({ type: "varchar", length: 100, nullable: true })
   doctor_name?: string;
-  
+
   @Column({ type: "enum", enum: request_status, nullable: true })
-  request_status?:request_status;
-  
+  request_status?: request_status;
+
   //this column will be associated to doctor_details table
-  @Column({type:"varchar", nullable: false})
-  doctorId! :string;
+  @Column({ type: "varchar", nullable: false })
+  doctorId!: string;
+
+  @Column({ type: "bigint", nullable: true })
+  sent_to?: number;
 
   @Column({ type: "varchar", length: 100, nullable: true })
   full_name?: string;
@@ -57,15 +60,15 @@ export class PatientRequest extends BaseEntity {
 
   @Column({ type: "date", nullable: true })
   dob?: Date;
- 
-  @Column({type:"varchar", length: 20, nullable:true})
-  pincode?:string;
 
-  @OneToOne(() => Gender, (gender) => gender.patient_request, {
+  @Column({ type: "varchar", length: 20, nullable: true })
+  pincode?: string;
+
+  @ManyToOne(() => Gender, (gender) => gender.patient_request, {
     nullable: true,
     cascade: true,
   })
-  @JoinColumn({name: "gender_id"})
+  @JoinColumn({ name: "gender_id" })
   gender?: Gender;
 
   // Many-to-One relationship with City
@@ -74,19 +77,19 @@ export class PatientRequest extends BaseEntity {
   city?: City;
 
   @ManyToOne(() => Province, { nullable: true })
-  @JoinColumn({name :"province_id"})
+  @JoinColumn({ name: "province_id" })
   province?: Province;
 
   @ManyToOne(() => State, { nullable: true })
-  @JoinColumn({name :"state_id"})
+  @JoinColumn({ name: "state_id" })
   state?: State;
 
   @ManyToOne(() => Country, { nullable: true })
-  @JoinColumn({name :"country_id"})
+  @JoinColumn({ name: "country_id" })
   country?: Country;
-  
+
   @ManyToOne(() => User, (user) => user.patient_request, { nullable: true })
-  @JoinColumn({name: 'user_id'})
+  @JoinColumn({ name: "user_id" })
   user!: User;
 
   @CreateDateColumn()

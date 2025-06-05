@@ -21,7 +21,7 @@ router.use("/auth", authRoutes);
 router.use("/homepage", [verifyUserAuthMiddleware], homepageRouter);
 router.use("/user", [verifyUserAuthMiddleware], userRouter);
 router.use("/hospitals", [verifyUserAuthMiddleware], hospitalRoutes);
-router.use("/public", [verifyUserAuthMiddleware], publicRouter);
+router.use("/public", publicRouter);
 
 /**
  * DASHBOARD APIS for ADMIN

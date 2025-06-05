@@ -24,8 +24,11 @@ adminRouter.get("/get-notifications", [validateGetNotifications], notificationCo
 adminRouter.post("/create-content", [validateCreateEditorContent, verifyAdminRoleMiddleware], editorContentController.createContent);
 adminRouter.get( "/get-content", [validateGetEditorContent], editorContentController.getContentByType);
 
-// Approval
-adminRouter.get("/get-all-registered-doctors", adminController.getAllRegisteredDoctors); // Get all pending doctor registrations
+// New Request Module as per figma
+adminRouter.get("/registered-doctors", adminController.getAllRegisteredDoctors); // Get all pending doctor registrations
 adminRouter.put("/update-doctor-status", adminController.updateDoctorStatus); // Approve/reject doctor
+adminRouter.get("/registered-patients", adminController.getAllRegisteredPatients); // Get all registered patients
+adminRouter.post("/patient-requests/forward", adminController.forwardPatientRequests); // Forward patients request
+
 
 export default adminRouter;

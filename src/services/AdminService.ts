@@ -1,8 +1,13 @@
 import { Like, Not } from "typeorm";
-import { User } from "../entities";
-import { UserRole } from "../enums";
+import { PatientRequest, User } from "../entities";
+import { request_status, UserRole } from "../enums";
+import { getDataSource } from "../config/database";
 
 export class AdminService {
+  getPatientRequestRepo() {
+    return getDataSource().getRepository(PatientRequest);
+  }
+
   // for admins only
   async getAllCustomers(searchOptions: any): Promise<[User[], number]> {
     const { limit, offset, search, userRoleType } = searchOptions;
@@ -96,6 +101,9 @@ export class AdminService {
       where: whereCondition,
       take: limit,
       skip: offset,
+      order: {
+        created_at: "DESC",
+      },
     });
 
     // Fetch all registered doctors (for stats)
@@ -126,5 +134,63 @@ export class AdminService {
 
     // Return the updated doctor
     return doctor;
+  }
+
+  async getRegisteredPatients(
+    filterOptions: any
+  ): Promise<[PatientRequest[], PatientRequest[]]> {
+    const { limit, offset } = filterOptions;
+
+    const paginatedPatients = await PatientRequest.find({
+      relations: ["gender", "city", "province", "user"],
+      take: limit,
+      skip: offset,
+      order: {
+        created_at: "DESC",
+      },
+    });
+
+    const allPatients = await PatientRequest.find({
+      relations: ["gender", "city", "province", "user"],
+    });
+
+    return [paginatedPatients, allPatients];
+  }
+
+  async forwardPatients(patientIds: number[], doctorId?: number): Promise<any> {
+    const patientRequestRepo = this.getPatientRequestRepo();
+    const updatedPatients = [];
+
+    for (const patientId of patientIds) {
+      const patient = await patientRequestRepo.findOne({
+        where: { id: patientId },
+      });
+
+      if (!patient) {
+        throw new Error(`Patient with ID ${patientId} not found`);
+      }
+
+      const targetDoctorId = doctorId || patient.doctorId;
+
+      if (!targetDoctorId) {
+        throw new Error(`Doctor ID missing for patient ID ${patientId}`);
+      }
+
+      patient.sent_to = Number(targetDoctorId);
+      patient.request_status = request_status.accepted;
+      await patientRequestRepo.save(patient);
+
+      updatedPatients.push({
+        patientId,
+        patientName: patient.full_name,
+        sentTo: targetDoctorId,
+        doctorName: patient.doctor_name,
+      });
+    }
+
+    return {
+      updated_count: updatedPatients.length,
+      forwarded: updatedPatients,
+    };
   }
 }

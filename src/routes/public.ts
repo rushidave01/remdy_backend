@@ -7,5 +7,6 @@ const publicController = new PublicController();
 // publicRouter.get('/regions', publicController.getRegion);
 publicRouter.get("/countries", publicController.getCountries);
 publicRouter.get("/states/:country_id", publicController.getStatesByCountryId);
+publicRouter.get("/cities", publicController.getCities);
 
 export default publicRouter;

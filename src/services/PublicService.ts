@@ -10,9 +10,6 @@ export class PublicService {
     async getStatesByRegion(regionId:number): Promise<State | any> {
         return await State.find({where:{region:regionId}});
     }
-    async getCities(): Promise<City | any> {
-        return await City.find();
-    }
     
     async getCitiesByStateId(stateId:number): Promise<City | any> {
         return await City.find({where:{state_id:stateId}});
@@ -89,5 +86,9 @@ export class PublicService {
     }
 
     return gender;
+  }
+
+  async getCities(): Promise<City | any> {
+    return await City.find();
   }
 }

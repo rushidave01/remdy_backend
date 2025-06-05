@@ -1,4 +1,5 @@
 import { PatientRequest } from "src/entities";
+import { request_status } from "src/enums";
 
 export class PatientRequestResponseDto {
   id: number;
@@ -11,6 +12,8 @@ export class PatientRequestResponseDto {
   had_family_doctor?: string;
   doctor_name?: string;
   doctorId: number;
+  sent_to?: number;
+  request_status?: request_status
   gender: string | null;
   city: string | null;
   province: string | null;
@@ -29,6 +32,8 @@ export class PatientRequestResponseDto {
     this.had_family_doctor = patient.had_family_doctor;
     this.doctor_name = patient.doctor_name;
     this.doctorId = Number(patient.doctorId);
+    this.sent_to = patient.sent_to;
+    this.request_status = patient.request_status;
     this.gender = patient.gender?.gender ?? null;
     this.city = patient.city?.city ?? null;
     this.province = patient.province?.name ?? null;

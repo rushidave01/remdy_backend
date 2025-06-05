@@ -1,12 +1,13 @@
-import { Request, Response } from 'express';
+import { Request, Response } from "express";
 import { PublicService } from "../services";
-import { CountryResponseDTO, StateResponseDTO } from '../dtos';
-import { HttpStatusCode } from 'axios';
+import { CityResponseDTO, CountryResponseDTO, StateResponseDTO } from "../dtos";
+import { HttpStatusCode } from "axios";
+import { City } from "src/entities";
 
 const publicService = new PublicService();
 
 export class PublicController {
-    /*
+  /*
     async getRegion(req: Request, res: Response): Promise<any> {
         try{
             const region = await publicService.getRegion();
@@ -68,59 +69,74 @@ export class PublicController {
     }
     */
 
-    async getCountries(req: Request, res: Response): Promise<any> {
-        try{
-            const { country_name: countryName } = req.query;
+  async getCountries(req: Request, res: Response): Promise<any> {
+    try {
+      const { country_name: countryName } = req.query;
 
-            if (!countryName){
-                return res
-                .status(HttpStatusCode.BadRequest)
-                .json({
-                    statue:true,
-                    message:"Country_name is required",
-                });
-            }
+      if (!countryName) {
+        return res.status(HttpStatusCode.BadRequest).json({
+          statue: true,
+          message: "Country_name is required",
+        });
+      }
 
-            const countries = await publicService.getCountries({countryName: countryName as string});
-            const responseData = countries.map((country) => new CountryResponseDTO(country));
-            
-            return res
-                .status(200)
-                .json({
-                    statue:true,
-                    message:"countries fetched Successfully",
-                    data:responseData
-                });
-        }catch(error:any){
-            res.status(500).json({ message: `something went wrong!` });
-        }
+      const countries = await publicService.getCountries({
+        countryName: countryName as string,
+      });
+      const responseData = countries.map(
+        (country) => new CountryResponseDTO(country)
+      );
+
+      return res.status(200).json({
+        statue: true,
+        message: "countries fetched Successfully",
+        data: responseData,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: `something went wrong!` });
     }
+  }
 
-    async getStatesByCountryId(req: Request, res: Response): Promise <any> {
-        try{
-            const { country_id: countryId } = req.params;
+  async getStatesByCountryId(req: Request, res: Response): Promise<any> {
+    try {
+      const { country_id: countryId } = req.params;
 
-            if (!countryId){
-                return res
-                .status(HttpStatusCode.BadRequest)
-                .json({
-                    statue:true,
-                    message:"Country_id is required",
-                });
-            }
+      if (!countryId) {
+        return res.status(HttpStatusCode.BadRequest).json({
+          statue: true,
+          message: "Country_id is required",
+        });
+      }
 
-            const states = await publicService.getStates({countryId: parseInt(countryId)});
-            const responseData = states.map((state) => new StateResponseDTO(state));
-            
-            return res
-                .status(200)
-                .json({
-                    statue:true,
-                    message:"states fetched Successfully",
-                    data: responseData
-                });
-        }catch(error:any){
-            res.status(500).json({ message: `something went wrong!` });
-        }
+      const states = await publicService.getStates({
+        countryId: parseInt(countryId),
+      });
+      const responseData = states.map((state) => new StateResponseDTO(state));
+
+      return res.status(200).json({
+        statue: true,
+        message: "states fetched Successfully",
+        data: responseData,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: `something went wrong!` });
     }
+  }
+
+  async getCities(req: Request, res: Response): Promise<any> {
+    try {
+      const cities = await publicService.getCities();
+      const responseData = cities.map(
+        (city: City) => new CityResponseDTO(city)
+      );
+
+      return res.status(200).json({
+        statue: true,
+        message: "Cities fetched Successfully",
+        data: responseData,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: `something went wrong!` });
+    }
+  }
 }
