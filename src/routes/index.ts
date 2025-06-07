@@ -9,8 +9,10 @@ import userRouter from "./users";
 
 import {
   verifyAdminAuthMiddleware,
+  verifyDoctorAuthMiddleware,
   verifyUserAuthMiddleware,
 } from "../middleware/verifyToken";
+import doctorRouter from "./doctor";
 
 const router = Router();
 
@@ -27,5 +29,10 @@ router.use("/public", publicRouter);
  * DASHBOARD APIS for ADMIN
  */
 router.use("/admin", [verifyAdminAuthMiddleware], adminRouter);
+
+/**
+ * DASHBOARD APIS for Doctor
+ */
+router.use("/doctor", [verifyDoctorAuthMiddleware], doctorRouter);
 
 export default router;

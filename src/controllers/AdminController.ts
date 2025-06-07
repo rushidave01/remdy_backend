@@ -1,17 +1,17 @@
 import { randomBytes } from "crypto";
 import { Request, Response } from "express";
+import { UpdateDoctorApprovalDto } from "src/dtos/admin/Doctor/req/doctor.request.dto";
+import { ForwardPatientRequestDto } from "src/dtos/admin/Patient/req/forward.patient.request.dto";
 import {
   AdminCustomerResponseDTO,
   PatientRequestResponseDto,
   RegisteredDoctorsResponseDTO,
 } from "../dtos";
+import { request_status, UserRole } from "../enums";
 import { AdminService } from "../services/AdminService";
+import { UserService } from "../services/UserService";
 import { bcryptHash, getPagination, MailService } from "../utils";
 import logger from "../utils/logger";
-import { UserService } from "../services/UserService";
-import { request_status, UserRole } from "../enums";
-import { UpdateDoctorApprovalDto } from "src/dtos/admin/Doctor/req/doctor.request.dto";
-import { ForwardPatientRequestDto } from "src/dtos/admin/Patient/req/forward.patient.request.dto";
 
 const adminService = new AdminService();
 const mailService = new MailService();
@@ -319,33 +319,32 @@ export class AdminController {
   }
 
   async forwardPatientRequests(req: Request, res: Response): Promise<Response> {
-  try {
-    const data: ForwardPatientRequestDto = req.body;
-    const { patientIds, doctorId } = data;
+    try {
+      const data: ForwardPatientRequestDto = req.body;
+      const { patientIds, doctorId } = data;
 
-    const isBulk = patientIds.length > 1;
+      const isBulk = patientIds.length > 1;
 
-    if (!isBulk && !doctorId) {
-      return res.status(400).json({
+      if (!isBulk && !doctorId) {
+        return res.status(400).json({
+          success: false,
+          message: "Doctor ID is required for single patient forwarding.",
+        });
+      }
+
+      const result = await adminService.forwardPatients(patientIds, doctorId);
+
+      return res.status(200).json({
+        success: true,
+        message: "Patient(s) forwarded successfully.",
+        data: result,
+      });
+    } catch (error: any) {
+      logger.error(`Error forwarding patient requests: ${error.message}`);
+      return res.status(500).json({
         success: false,
-        message: "Doctor ID is required for single patient forwarding.",
+        message: "Something went wrong while forwarding patient(s).",
       });
     }
-
-    const result = await adminService.forwardPatients(patientIds, doctorId);
-
-    return res.status(200).json({
-      success: true,
-      message: "Patient(s) forwarded successfully.",
-      data: result,
-    });
-  } catch (error: any) {
-    logger.error(`Error forwarding patient requests: ${error.message}`);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while forwarding patient(s).",
-    });
   }
-}
-
 }

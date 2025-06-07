@@ -40,10 +40,10 @@ export class EditorContentService {
     }
   }
 
-  async getContentByType(type: string) {
+  async getContentByType(userId: number, type: string) {
     try {
       const content = await this.getEditorContentRepository().find({
-        where: { type: type as ContentType }, // Cast to enum
+        where: { created_by: { id: userId }, type: type as ContentType }, // Cast to enum
         order: { created_at: "DESC" },
       });
 

@@ -12,7 +12,17 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
-import { City, Country, Gender, Reviews, State, User, Wishlist } from "./index";
+import { AcceptingPatients } from "../enums";
+import {
+  City,
+  Country,
+  Gender,
+  PatientRequest,
+  Reviews,
+  State,
+  User,
+  Wishlist,
+} from "./index";
 
 @Entity("doctor_details")
 export class DoctorDetails extends BaseEntity {
@@ -102,6 +112,13 @@ export class DoctorDetails extends BaseEntity {
   @Column({ type: "time", nullable: true })
   work_end_time?: string;
 
+  @Column({
+    type: "enum",
+    enum: AcceptingPatients,
+    default: AcceptingPatients.WAITING,
+  })
+  acceptingPatients!: AcceptingPatients;
+
   /////// column not created, use migrations in future
   // @Column({ type: 'text', nullable: true })
   // training?: string;
@@ -111,6 +128,9 @@ export class DoctorDetails extends BaseEntity {
 
   // @Column({ type: 'varchar', length: 255, nullable: true })
   // profile_image_url?: string;
+
+  @OneToMany(() => PatientRequest, (request) => request.doctor)
+  patient_requests?: PatientRequest[];
 
   @OneToOne(() => User, (user) => user.doctor_details, { nullable: true })
   @JoinColumn({ name: "user_id" }) // Specify the foreign key column in doctor_details

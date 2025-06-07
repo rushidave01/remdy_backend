@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { getDataSource } from "../config/database";
 import { CreatePatientRequestDto } from "../dtos";
 import { PatientRequestResponseDto } from "../dtos/user/create.patient.response.dto";
-import { PatientLocation } from "../entities";
+import { DoctorDetails, PatientLocation } from "../entities";
 import { request_status, user_wislist_status, UserRole } from "../enums";
 import {
   DoctorService,
@@ -30,6 +30,10 @@ export class UserController {
     return getDataSource().getRepository(PatientLocation);
   }
 
+  getDoctorDetailsRepository() {
+    return getDataSource().getRepository(DoctorDetails);
+  }
+  
   async storePatientLocation(req: Request, res: Response): Promise<any> {
     try {
       const { latitude, longitude, city, address, userId } = req.body;
@@ -334,6 +338,14 @@ export class UserController {
       // Get City by cityId
       const city = await publicService.getCityById(data.cityId);
 
+      const doctor_details = await doctorService.getDoctorDetailsById(data.doctorId);
+      if (!doctor_details) {
+        return res.status(404).json({
+          success: false,
+          message: "Doctor ID is not found",
+        });
+      }
+      
       // Step 2: Create the patient request linked to the user
       const patientRequest = await patientService.createPatientRequest({
         full_name: data.full_name,
@@ -347,7 +359,7 @@ export class UserController {
         dob: data.dob,
         had_family_doctor: data.had_family_doctor,
         doctor_name: data.doctor_name,
-        doctorId: data.doctorId,
+        doctor: doctor_details,
         user: user,
         request_status: request_status.pending,
       });

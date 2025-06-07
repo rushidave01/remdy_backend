@@ -11,5 +11,5 @@ export interface CreatePatientRequestDto {
   dob?: Date;
   had_family_doctor?: string;
   doctor_name?: string;
-  doctorId: string;
+  doctorId: number;
 }

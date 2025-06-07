@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { ApiResponseDto } from "../dto/res";
 import { CreateEditorContentRequestDto } from "../dtos/admin/EditorContent/req/create.editor.content.request.dto";
 import { EditorContentService } from "../services";
+import { getUserIdFromToken } from "../middleware";
 
 const editorContentService = new EditorContentService();
 
@@ -33,9 +34,14 @@ export class EditorContentController {
 
   async getContentByType(req: Request, res: Response): Promise<Response> {
     try {
+      const userId = getUserIdFromToken(req);
+      if (userId === null) {
+        return res.status(401).json({ status: false, message: "Unauthorized" });
+      }
       const { type } = req.query;
 
       const contentData = await editorContentService.getContentByType(
+        userId,
         type as string
       );
 

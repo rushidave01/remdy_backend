@@ -142,7 +142,7 @@ export class AdminService {
     const { limit, offset } = filterOptions;
 
     const paginatedPatients = await PatientRequest.find({
-      relations: ["gender", "city", "province", "user"],
+      relations: ["gender", "city", "province", "user", "doctor"],
       take: limit,
       skip: offset,
       order: {
@@ -151,7 +151,7 @@ export class AdminService {
     });
 
     const allPatients = await PatientRequest.find({
-      relations: ["gender", "city", "province", "user"],
+      relations: ["gender", "city", "province", "user", "doctor"],
     });
 
     return [paginatedPatients, allPatients];
@@ -170,7 +170,7 @@ export class AdminService {
         throw new Error(`Patient with ID ${patientId} not found`);
       }
 
-      const targetDoctorId = doctorId || patient.doctorId;
+      const targetDoctorId = doctorId || patient.doctor?.id;
 
       if (!targetDoctorId) {
         throw new Error(`Doctor ID missing for patient ID ${patientId}`);

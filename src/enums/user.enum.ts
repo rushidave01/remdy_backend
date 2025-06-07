@@ -1,8 +1,8 @@
 export enum UserRole {
-    patient = 'PATIENT',
-    doctor = 'DOCTOR',
-    hospital = 'HOSPITAL',
-    admin = 'ADMIN'
+  patient = "PATIENT",
+  doctor = "DOCTOR",
+  hospital = "HOSPITAL",
+  admin = "ADMIN",
 }
 
 export enum OTP_status {
@@ -23,22 +23,27 @@ export enum request_status {
 }
 
 export enum doctor_type {
-  family = "FAMILY_DOCTOR"
+  family = "FAMILY_DOCTOR",
 }
 
 export enum user_wislist_status {
-  removed= "REMOVED",
-  added = "ADDED"
+  removed = "REMOVED",
+  added = "ADDED",
 }
 
 export enum logged_in_with {
-  google = 'GOOGLE',
-  apple = 'APPLE'
-} 
-
+  google = "GOOGLE",
+  apple = "APPLE",
+}
 
 export enum Gender {
   MALE = "male",
   FEMALE = "female",
   OTHER = "other",
-} 
+}
+
+export enum AcceptingPatients {
+  AVAILABLE = "AVAILABLE",
+  WAITING = "WAITING",
+  NOT_ACCEPTING = "NOT_ACCEPTING",
+}

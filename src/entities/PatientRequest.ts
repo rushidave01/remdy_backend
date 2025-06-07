@@ -1,19 +1,25 @@
+import { IsEmail } from "class-validator";
 import {
-  Entity,
-  PrimaryGeneratedColumn,
+  BaseEntity,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
   DeleteDateColumn,
-  BaseEntity,
-  OneToOne,
+  Entity,
   JoinColumn,
-  OneToMany,
   ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
 } from "typeorm";
-import { User, Gender, City, Province, State, Country } from "./index";
-import { IsEmail } from "class-validator";
 import { has_family_doctor, request_status } from "../enums";
+import {
+  City,
+  Country,
+  DoctorDetails,
+  Gender,
+  Province,
+  State,
+  User,
+} from "./index";
 
 @Entity("patient_request")
 export class PatientRequest extends BaseEntity {
@@ -41,10 +47,6 @@ export class PatientRequest extends BaseEntity {
   @Column({ type: "enum", enum: request_status, nullable: true })
   request_status?: request_status;
 
-  //this column will be associated to doctor_details table
-  @Column({ type: "varchar", nullable: false })
-  doctorId!: string;
-
   @Column({ type: "bigint", nullable: true })
   sent_to?: number;
 
@@ -70,6 +72,14 @@ export class PatientRequest extends BaseEntity {
   })
   @JoinColumn({ name: "gender_id" })
   gender?: Gender;
+
+  @ManyToOne(
+    () => DoctorDetails,
+    (DoctorDetails) => DoctorDetails.patient_requests,
+    { nullable: true }
+  )
+  @JoinColumn({ name: "doctor_id" })
+  doctor?: DoctorDetails;
 
   // Many-to-One relationship with City
   @ManyToOne(() => City, (city) => city.patient_requests, { nullable: true })
