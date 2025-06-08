@@ -1,6 +1,6 @@
 // src/controllers/UserController.ts
 import { Request, Response } from "express";
-import { getDataSource } from "../config/database";
+import { pgSQl_dataSource, getDataSource } from "../config/database";
 import { CreatePatientRequestDto } from "../dtos";
 import { PatientRequestResponseDto } from "../dtos/user/create.patient.response.dto";
 import { DoctorDetails, PatientLocation } from "../entities";
@@ -33,7 +33,7 @@ export class UserController {
   getDoctorDetailsRepository() {
     return getDataSource().getRepository(DoctorDetails);
   }
-  
+
   async storePatientLocation(req: Request, res: Response): Promise<any> {
     try {
       const { latitude, longitude, city, address, userId } = req.body;
@@ -315,54 +315,67 @@ export class UserController {
   }
 
   async createPatientRequest(req: Request, res: Response): Promise<Response> {
-    const userService = new UserService();
+    const queryRunner = pgSQl_dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
       const data: CreatePatientRequestDto = req.body;
 
       // Step 1: Create the user
-      const user = await userService.createUser({
-        user_name: data.full_name,
-        user_email: data.patient_email,
-        user_mobile: data.phone_number ? BigInt(data.phone_number) : undefined,
-        user_role: UserRole.patient,
-        is_verified: false,
-        active: false,
-      });
+      const user = await userService.createUser(
+        {
+          user_name: data.full_name,
+          user_email: data.patient_email,
+          user_mobile: data.phone_number
+            ? BigInt(data.phone_number)
+            : undefined,
+          user_role: UserRole.patient,
+          is_verified: false,
+          active: false,
+        },
+        queryRunner.manager
+      );
 
-      // Get Gender by genderId
+      // Step 2: Fetch related entities
       const gender = await publicService.getGenderById(data.genderId);
-
-      // Get Province by provinceId
       const province = await publicService.getProvinceById(data.provinceId);
-
-      // Get City by cityId
       const city = await publicService.getCityById(data.cityId);
+      const doctor_details = await doctorService.getDoctorDetailsById(
+        data.doctorId
+      );
 
-      const doctor_details = await doctorService.getDoctorDetailsById(data.doctorId);
       if (!doctor_details) {
+        await queryRunner.rollbackTransaction();
         return res.status(404).json({
           success: false,
           message: "Doctor ID is not found",
         });
       }
-      
-      // Step 2: Create the patient request linked to the user
-      const patientRequest = await patientService.createPatientRequest({
-        full_name: data.full_name,
-        patient_email: data.patient_email,
-        phone_number: data.phone_number,
-        address: data.address,
-        city: city,
-        province: province,
-        pincode: data.pincode,
-        gender: gender,
-        dob: data.dob,
-        had_family_doctor: data.had_family_doctor,
-        doctor_name: data.doctor_name,
-        doctor: doctor_details,
-        user: user,
-        request_status: request_status.pending,
-      });
+
+      // Step 3: Create the patient request
+      const patientRequest = await patientService.createPatientRequest(
+        {
+          full_name: data.full_name,
+          patient_email: data.patient_email,
+          phone_number: data.phone_number,
+          address: data.address,
+          city,
+          province,
+          pincode: data.pincode,
+          gender,
+          dob: data.dob,
+          had_family_doctor: data.had_family_doctor,
+          doctor_name: data.doctor_name,
+          doctor: doctor_details,
+          user,
+          request_status: request_status.pending,
+        },
+        queryRunner.manager
+      );
+
+      await queryRunner.commitTransaction();
+
       const responseDto = new PatientRequestResponseDto(patientRequest);
 
       return res.status(201).json({
@@ -371,6 +384,7 @@ export class UserController {
         data: responseDto,
       });
     } catch (error: any) {
+      await queryRunner.rollbackTransaction();
       console.error("Error in createPatientRequest:", error);
 
       // Handle duplicate constraint
@@ -398,6 +412,8 @@ export class UserController {
         success: false,
         message: "Something went wrong while creating patient request.",
       });
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -406,7 +422,7 @@ export class UserController {
       const doctors = await userService.getApprovedDoctors();
 
       const responseData = doctors.map((doc) => ({
-        id: doc.id,
+        id: doc.doctor_details?.id,
         name: doc.user_name,
         email: doc.user_email,
         CreatedAt: doc.created_at,

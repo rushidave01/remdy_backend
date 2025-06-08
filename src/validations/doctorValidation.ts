@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
+import { AcceptingPatients } from "../enums";
 
 // Joi schema for doctor registration validation
 const doctorRegisterSchema = Joi.object({
@@ -21,6 +22,13 @@ const doctorRegisterSchema = Joi.object({
 const doctorLoginSchema = Joi.object({
   user_email: Joi.string().email().max(250).required(), // Email is required and must be valid
   user_password: Joi.string().min(4).max(255).required(), // Password must be between 4-255 characters
+});
+
+const updateAcceptingPatientsStatusSchema = Joi.object({
+  doctorId: Joi.number().integer().required(),
+  acceptingPatients: Joi.string()
+    .valid(...Object.values(AcceptingPatients))
+    .required(),
 });
 
 // Middleware to validate doctor registration request
@@ -72,5 +80,33 @@ export const validateDoctorLoginSchema = async (
       message: "Unexpected error during validation", // Return generic error response
       error: error instanceof Error ? error.message : "Unknown error",
     });
+  }
+};
+
+export const validateUpdateAcceptingPatientsStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    await updateAcceptingPatientsStatusSchema.validateAsync(req.body, {
+      abortEarly: false,
+    });
+    next();
+  } catch (error) {
+    if (error instanceof Joi.ValidationError) {
+      return res.status(422).json({
+        success: false,
+        message: "Validation error",
+        error: error.message,
+        data: null,
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred during validation",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
 };

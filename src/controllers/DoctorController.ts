@@ -1,6 +1,7 @@
 // src/controllers/UserController.ts
 
 import { Request, Response } from "express";
+import { UpdateAcceptingPatientsStatusDto } from "src/dtos/doctor/req/update.doctor.details.request.dto";
 import { ApiResponseDto } from "../dto/res";
 import { GetDoctorsbyIdDto } from "../dtos/user/doctorDto";
 import { UserRole } from "../enums";
@@ -14,6 +15,7 @@ import {
 
 const doctorService = new DoctorService();
 const notificationService = new NotificationService();
+
 export class DoctorController {
   async getDoctors(req: Request, res: Response) {
     try {
@@ -243,6 +245,37 @@ export class DoctorController {
             undefined,
             error
           )
+        );
+    }
+  }
+
+  async updateAcceptingPatientsStatus(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
+    try {
+      const updateDto: UpdateAcceptingPatientsStatusDto = req.body;
+
+      const updated = await doctorService.updateAcceptingPatientsStatus(
+        updateDto.doctorId,
+        updateDto.acceptingPatients
+      );
+
+      return res
+        .status(200)
+        .json(
+          new ApiResponseDto(
+            true,
+            "Doctor status updated successfully",
+            updated
+          )
+        );
+    } catch (error) {
+      console.error("Error updating status:", error);
+      return res
+        .status(500)
+        .json(
+          new ApiResponseDto(false, "Internal Server Error", undefined, error)
         );
     }
   }

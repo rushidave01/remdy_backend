@@ -1,11 +1,10 @@
-import { PatientLocation, Reviews, User, Wishlist } from "../entities";
+import { EntityManager } from "node_modules/typeorm";
 import { getDataSource } from "../config/database";
-import { user_wislist_status } from "../enums";
-import { UserRole } from "../enums";
-import { bcryptHash } from '../utils';
+import { PatientLocation, Reviews, User, Wishlist } from "../entities";
+import { user_wislist_status, UserRole } from "../enums";
+import { bcryptHash } from "../utils";
 
 export class UserService {
-  
   getUserRepository() {
     return getDataSource().getRepository(User);
   }
@@ -22,20 +21,24 @@ export class UserService {
     return this.getUserRepository().findOne({ where: { user_email: email } });
   }
 
-  async createUser(userData: Partial<User>): Promise<User> {
-    const userRepository = this.getUserRepository();
-    const newUser = userRepository.create(userData);
+  async createUser(
+    userData: Partial<User>,
+    manager?: EntityManager
+  ): Promise<User> {
+    const userRepository = manager
+      ? manager.getRepository(User)
+      : this.getUserRepository();
 
+    const newUser = userRepository.create(userData);
     return userRepository.save(newUser);
   }
 
-  async createAdmin(email: string, password: string){    
+  async createAdmin(email: string, password: string) {
     const admin = new User();
     admin.user_email = email;
     admin.user_password = await bcryptHash(password);
     admin.user_role = UserRole.admin;
     return admin.save();
-
   }
 
   async findUserById(userId: number): Promise<User | null> {
@@ -193,16 +196,13 @@ export class UserService {
   }
 
   async getApprovedDoctors(): Promise<User[]> {
-    return this.getUserRepository().find({
-      where: {
-        user_role: UserRole.doctor,
-        // is_verified: true,
-        active: true,
-      },
-      order: {
-        created_at: "DESC",
-      },
-    });
+    return this.getUserRepository()
+      .createQueryBuilder("user")
+      .leftJoinAndSelect("user.doctor_details", "doctorDetails")
+      .where("user.user_role = :role", { role: UserRole.doctor })
+      .andWhere("user.active = :active", { active: true })
+      .andWhere("doctorDetails.id IS NOT NULL")
+      .orderBy("user.created_at", "DESC")
+      .getMany();
   }
 }
-
