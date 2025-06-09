@@ -30,5 +30,7 @@ adminRouter.put("/update-doctor-status", adminController.updateDoctorStatus); //
 adminRouter.get("/registered-patients", adminController.getAllRegisteredPatients); // Get all registered patients
 adminRouter.post("/patient-requests/forward", adminController.forwardPatientRequests); // Forward patients request
 
+adminRouter.get("/dashboard/summary", adminController.getDashboardSummary);
+
 
 export default adminRouter;

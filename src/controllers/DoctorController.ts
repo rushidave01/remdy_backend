@@ -8,9 +8,9 @@ import { UserRole } from "../enums";
 import { NotificationService } from "../services";
 import { DoctorService } from "../services/DoctorService";
 import {
-    getDoctorsByIdSchema,
-    getDoctorsByPostalSchema,
-    locationSchema,
+  getDoctorsByIdSchema,
+  getDoctorsByPostalSchema,
+  locationSchema,
 } from "../validations/userDTO";
 
 const doctorService = new DoctorService();

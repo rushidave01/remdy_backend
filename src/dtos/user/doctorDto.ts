@@ -1,5 +1,6 @@
 // dto/get-doctors.dto.ts
 import { IsOptional, IsNumber, IsString } from "class-validator";
+import { UserRole } from "../../enums";
 
 export class GetDoctorsDto {
   @IsOptional()
@@ -12,7 +13,7 @@ export class GetDoctorsDto {
 
   @IsString()
   @IsOptional()
-  user_role: string = "DOCTOR";
+  user_role: string = UserRole.doctor;
 
   @IsNumber()
   latitude?: number;
@@ -94,7 +95,7 @@ export class GetDoctorsNearbyDto{
     this.last_name = data.last_name,
     this.doctor_full_name = data.doctor_full_name,
     this.profile_image_url = data.user.profile_image_url,
-    this.doctor_speciality = data.speciality[0].speciality,
+    this.doctor_speciality = data.speciality ? data.speciality[0].speciality : null,
     this.reviewsCount = data.reviewsCount,
     this.average_rating = data.averageRating
 

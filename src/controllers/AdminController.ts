@@ -12,6 +12,7 @@ import { AdminService } from "../services/AdminService";
 import { UserService } from "../services/UserService";
 import { bcryptHash, getPagination, MailService } from "../utils";
 import logger from "../utils/logger";
+import { ApiResponseDto } from "../dto/res";
 
 const adminService = new AdminService();
 const mailService = new MailService();
@@ -31,17 +32,25 @@ export class AdminController {
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const size = req.query.size ? parseInt(req.query.size as string) : 15;
       const { limit, offset } = getPagination(page, size);
-      const searchOptions = { limit, offset, search, userRoleType };
-      const [allCustomers, customersCount] = await adminService.getAllCustomers(
-        searchOptions
-      );
 
-      const allUsersResponseData = allCustomers.map(
+      const {
+        filteredUsers,
+        filteredCount,
+        totalUsers,
+        verifiedDoctors,
+        acceptingDoctors,
+      } = await adminService.getAllCustomers({
+        limit,
+        offset,
+        search,
+        userRoleType,
+      });
+
+      const allUsersResponseData = filteredUsers.map(
         (user) => new AdminCustomerResponseDTO(user)
       );
-      logger.info(`All users fetched successfully, getUsersReport`);
 
-      const hasMore = page * size < customersCount;
+      const hasMore = page * size < filteredCount;
 
       return res.status(200).json({
         success: true,
@@ -49,20 +58,20 @@ export class AdminController {
         data: {
           overall_stats: {
             users: {
-              total_users: customersCount,
+              total_users: totalUsers,
               user_increased_by: true,
               percentage: 18,
             },
             doctors: {
-              verified_doctors: 1893,
+              verified_doctors: verifiedDoctors,
               verified_doctors_increased_by: false,
               percentage: 1,
-              aceepting_patient: 189,
+              aceepting_patient: acceptingDoctors,
             },
           },
           grid_data: {
             has_more: hasMore,
-            total_users: customersCount,
+            total_users: filteredCount,
             all_customers: allUsersResponseData,
           },
         },
@@ -345,6 +354,31 @@ export class AdminController {
         success: false,
         message: "Something went wrong while forwarding patient(s).",
       });
+    }
+  }
+
+  async getDashboardSummary(req: Request, res: Response): Promise<Response> {
+    try {
+      const roleParam = (req.query.user as string)?.toLowerCase() || "all";
+
+      const data = await adminService.getDashboardSummary(roleParam);
+
+      return res
+        .status(200)
+        .json(
+          new ApiResponseDto(
+            true,
+            "Dashboard summary fetched successfully",
+            data
+          )
+        );
+    } catch (error) {
+      console.error("Dashboard summary error:", error);
+      return res
+        .status(500)
+        .json(
+          new ApiResponseDto(false, "Internal server error", undefined, error)
+        );
     }
   }
 }

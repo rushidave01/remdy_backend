@@ -60,6 +60,7 @@ async getDoctorsByLocationAndRole(
     getDoctorsDto: GetDoctorsDto
   ): Promise<any> {
     const { latitude, longitude, page, size, user_role } = getDoctorsDto;
+
     const doctorDetailsRepository = await getDataSource().getRepository(
       DoctorDetails
     );
@@ -91,7 +92,7 @@ async getDoctorsByLocationAndRole(
       )
       .getCount();
 
-    // Add reviews count and average rating for each doctor
+      // Add reviews count and average rating for each doctor
     const doctorsWithReviews = doctorsQuery.map((doctor) => {
       const reviews = doctor.user.reviews || [];
 
@@ -110,10 +111,10 @@ async getDoctorsByLocationAndRole(
         averageRating: averageRating,
       };
     });
+
     const finalResult = doctorsWithReviews.map(
       (item: any) => new GetDoctorsNearbyDto(item)
     );
-
     return {
       doctors: finalResult,
       total: totalDoctors,
