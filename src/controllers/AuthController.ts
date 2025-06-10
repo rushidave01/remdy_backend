@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { DoctorDetails, User } from "../entities";
-import { UserRole } from "../enums";
+import { request_status, UserRole } from "../enums";
 import {
   AuthService,
   JwtService,
@@ -144,7 +144,7 @@ export class AuthController {
           status: false,
           message: "Doctor with this email already exists",
         });
-      } 
+      }
 
       // Create new doctor user instance
       const doctor = new User();
@@ -158,6 +158,7 @@ export class AuthController {
       const doctorDetails = new DoctorDetails();
       doctorDetails.first_name = user_name;
       doctorDetails.address = address;
+      doctorDetails.doctor_status = request_status.pending;
 
       // Associate doctor details with the user
       doctor.doctor_details = doctorDetails;

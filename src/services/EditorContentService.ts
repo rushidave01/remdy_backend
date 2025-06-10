@@ -9,33 +9,51 @@ export class EditorContentService {
     return getDataSource().getRepository(EditorContent);
   }
 
-  async createContent(
+  async addOrUpdateContent(
     contentDto: CreateEditorContentRequestDto
-  ): Promise<EditorContent | null> {
-    const contentRepository = getDataSource().getRepository(EditorContent);
-    const userRepository = getDataSource().getRepository(User);
+  ): Promise<{ content: EditorContent; updated: boolean } | null> {
+    const contentRepo = getDataSource().getRepository(EditorContent);
+    const userRepo = getDataSource().getRepository(User);
 
     try {
-      // Validate user exists
-      const user = await userRepository.findOne({
+      const user = await userRepo.findOne({
         where: { id: contentDto.created_by },
       });
-      if (!user) {
-        throw new Error("Invalid user ID");
-      }
+      if (!user) throw new Error("Invalid user ID");
 
-      const newContent = contentRepository.create({
-        title: contentDto.title,
-        type: contentDto.type,
-        html_content: contentDto.html_content,
-        status: contentDto.status,
-        created_by: user,
-        updated_by: user,
+      // Check if content already exists for this admin
+      let existingContent = await contentRepo.findOne({
+        where: { created_by: { id: user.id } },
+        relations: ["created_by"],
       });
 
-      return await contentRepository.save(newContent);
+      if (existingContent) {
+        // Update existing
+        existingContent.title = contentDto.title;
+        existingContent.type = contentDto.type;
+        existingContent.html_content = contentDto.html_content;
+        existingContent.status = contentDto.status;
+        existingContent.updated_by = user;
+        existingContent.updated_at = new Date();
+
+        const updated = await contentRepo.save(existingContent);
+        return { content: updated, updated: true };
+      } else {
+        // Create new
+        const newContent = contentRepo.create({
+          title: contentDto.title,
+          type: contentDto.type,
+          html_content: contentDto.html_content,
+          status: contentDto.status,
+          created_by: user,
+          updated_by: user,
+        });
+
+        const created = await contentRepo.save(newContent);
+        return { content: created, updated: false };
+      }
     } catch (error) {
-      console.error("Error saving content:", error);
+      console.error("Error addOrUpdateContent:", error);
       return null;
     }
   }

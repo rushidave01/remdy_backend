@@ -1,5 +1,5 @@
 import { endOfWeek, format, startOfWeek } from "date-fns";
-import { Like, Not } from "typeorm";
+import { Between, Like, Not } from "typeorm";
 import { getDataSource } from "../config/database";
 import { DoctorDetails, PatientRequest, User } from "../entities";
 import { request_status, UserRole } from "../enums";
@@ -101,40 +101,112 @@ export class AdminService {
   }
 
   // Service to get registered doctors (with and without pagination)
-  async getRegisteredDoctors(filterOptions: any): Promise<[User[], User[]]> {
-    const { limit, offset, search, approvalStatus } = filterOptions;
+  async getRegisteredDoctors(filterOptions: any): Promise<{
+    paginatedDoctors: DoctorDetails[];
+    totalDoctorsCount: number;
+    verifiedStats: { currentMonth: number; previousMonth: number };
+    pendingStats: { currentMonth: number; previousMonth: number };
+  }> {
+    const { limit, offset, search, doctorStatus } = filterOptions;
 
-    // Base query filter: only fetch doctors
-    const whereCondition: any = {
-      user_role: UserRole.doctor,
+    const doctorRepo = getDataSource().getRepository(DoctorDetails);
+
+    const whereClause: any = {};
+
+    if (doctorStatus) {
+      whereClause.doctor_status = doctorStatus;
+    }
+
+    if (search) {
+      whereClause.user = {
+        user_name: Like(`%${search}%`),
+        user_role: UserRole.doctor,
+      };
+    } else {
+      whereClause.user = {
+        user_role: UserRole.doctor,
+      };
+    }
+
+    const [paginatedDoctors, totalDoctorsCount] = await doctorRepo.findAndCount(
+      {
+        where: whereClause,
+        relations: ["user"],
+        take: limit,
+        skip: offset,
+        order: {
+          created_at: "DESC",
+        },
+      }
+    );
+
+    const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const verifiedStats = {
+      currentMonth: await doctorRepo
+        .createQueryBuilder("doctor")
+        .leftJoin("doctor.user", "user")
+        .where("doctor.doctor_status = :status", {
+          status: request_status.accepted,
+        })
+        .andWhere("user.active = true")
+        .andWhere("doctor.created_at BETWEEN :start AND :end", {
+          start: startOfThisMonth,
+          end: now,
+        })
+        .getCount(),
+
+      previousMonth: await doctorRepo
+        .createQueryBuilder("doctor")
+        .leftJoin("doctor.user", "user")
+        .where("doctor.doctor_status = :status", {
+          status: request_status.accepted,
+        })
+        .andWhere("user.active = true")
+        .andWhere("doctor.created_at BETWEEN :start AND :end", {
+          start: startOfLastMonth,
+          end: endOfLastMonth,
+        })
+        .getCount(),
     };
 
-    // Apply search filter if provided (search by username)
-    if (search) {
-      whereCondition.user_name = Like(`%${search}%`);
-    }
+    const pendingStats = {
+      currentMonth: await doctorRepo
+        .createQueryBuilder("doctor")
+        .leftJoin("doctor.user", "user")
+        .where("doctor.doctor_status = :status", {
+          status: request_status.pending,
+        })
+        .andWhere("user.active = false")
+        .andWhere("doctor.created_at BETWEEN :start AND :end", {
+          start: startOfThisMonth,
+          end: now,
+        })
+        .getCount(),
 
-    // Apply approval status filter if provided
-    if (approvalStatus !== undefined) {
-      whereCondition.active = approvalStatus;
-    }
+      previousMonth: await doctorRepo
+        .createQueryBuilder("doctor")
+        .leftJoin("doctor.user", "user")
+        .where("doctor.doctor_status = :status", {
+          status: request_status.pending,
+        })
+        .andWhere("user.active = false")
+        .andWhere("doctor.created_at BETWEEN :start AND :end", {
+          start: startOfLastMonth,
+          end: endOfLastMonth,
+        })
+        .getCount(),
+    };
 
-    // Paginated fetch
-    const paginatedDoctors = await User.find({
-      where: whereCondition,
-      take: limit,
-      skip: offset,
-      order: {
-        created_at: "DESC",
-      },
-    });
-
-    // Fetch all registered doctors (for stats)
-    const allDoctors = await User.find({
-      where: { user_role: UserRole.doctor },
-    });
-
-    return [paginatedDoctors, allDoctors];
+    return {
+      paginatedDoctors,
+      totalDoctorsCount,
+      verifiedStats,
+      pendingStats,
+    };
   }
 
   /**
@@ -148,15 +220,54 @@ export class AdminService {
     doctor: User,
     hashedPassword: string
   ): Promise<User> {
-    // Mark the doctor's account as active and set the random hashed password first time
-    doctor.active = true;
-    doctor.user_password = hashedPassword;
+    const doctorDetailsRepository =
+      getDataSource().getRepository(DoctorDetails);
+    const userRepository = getDataSource().getRepository(User);
 
-    // Save the updated user record to the database
-    await doctor.save();
+    // Step 1: Find doctor details using the doctor (user) object
+    const doctorDetails = await doctorDetailsRepository.findOne({
+      where: { user: { id: doctor.id } },
+      relations: ["user"],
+    });
 
-    // Return the updated doctor
-    return doctor;
+    if (!doctorDetails) {
+      throw new Error("Doctor details not found for the user.");
+    }
+
+    // Step 2: Update doctorDetails' doctor_status to 'ACCEPTED'
+    doctorDetails.doctor_status = request_status.accepted;
+    await doctorDetailsRepository.save(doctorDetails);
+
+    // Step 3: Update the linked user's active flag and password
+    doctorDetails.user.active = true;
+    doctorDetails.user.user_password = hashedPassword;
+    await userRepository.save(doctorDetails.user);
+
+    return doctorDetails.user;
+  }
+
+  /**
+   * Rejects a doctor by updating doctor_status in doctorDetails.
+   *
+   * @param doctor - The doctor User entity to reject.
+   * @returns A boolean indicating success or failure.
+   */
+  async rejectDoctorRegistration(doctor: User): Promise<boolean> {
+    const doctorDetailsRepo = getDataSource().getRepository(DoctorDetails);
+
+    const doctorDetails = await doctorDetailsRepo.findOne({
+      where: { user: { id: doctor.id } },
+      relations: ["user"],
+    });
+
+    if (!doctorDetails) {
+      throw new Error("DoctorDetails not found for the user.");
+    }
+
+    doctorDetails.doctor_status = request_status.rejected;
+    await doctorDetailsRepo.save(doctorDetails);
+
+    return true;
   }
 
   async getRegisteredPatients(

@@ -21,7 +21,8 @@ adminRouter.post("/send-notification", [validateSendNotification], notificationC
 adminRouter.get("/get-notifications", [validateGetNotifications], notificationController.getAllNotifications);  // Get All Notifications (with pagination)
 
 // Static API's 
-adminRouter.post("/create-content", [validateCreateEditorContent, verifyAdminRoleMiddleware], editorContentController.createContent);
+adminRouter.post(
+  "/add-or-update-content", [validateCreateEditorContent, verifyAdminRoleMiddleware], editorContentController.addOrUpdateContent);
 adminRouter.get( "/get-content", [validateGetEditorContent], editorContentController.getContentByType);
 
 // New Request Module as per figma

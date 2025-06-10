@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { Request, Response } from "express";
 import { UpdateDoctorApprovalDto } from "src/dtos/admin/Doctor/req/doctor.request.dto";
 import { ForwardPatientRequestDto } from "src/dtos/admin/Patient/req/forward.patient.request.dto";
+import { ApiResponseDto } from "../dto/res";
 import {
   AdminCustomerResponseDTO,
   PatientRequestResponseDto,
@@ -12,7 +13,6 @@ import { AdminService } from "../services/AdminService";
 import { UserService } from "../services/UserService";
 import { bcryptHash, getPagination, MailService } from "../utils";
 import logger from "../utils/logger";
-import { ApiResponseDto } from "../dto/res";
 
 const adminService = new AdminService();
 const mailService = new MailService();
@@ -130,49 +130,64 @@ export class AdminController {
   // Controller method to fetch all registered doctors (with optional search, approvalStatus, and pagination)
   async getAllRegisteredDoctors(req: Request, res: Response) {
     try {
-      // Extract query params
-      const { search, approvalStatus } = req.query;
+      const { search, doctorStatus } = req.query;
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const size = req.query.size ? parseInt(req.query.size as string) : 10;
       const { limit, offset } = getPagination(page, size);
 
-      const filterOptions = { limit, offset, search, approvalStatus };
+      const filterOptions = { limit, offset, search, doctorStatus };
 
-      // Fetch doctors with and without pagination
-      const [paginatedDoctors, allDoctors] =
-        await adminService.getRegisteredDoctors(filterOptions);
+      const {
+        paginatedDoctors,
+        totalDoctorsCount,
+        verifiedStats,
+        pendingStats,
+      } = await adminService.getRegisteredDoctors(filterOptions);
 
-      // Total doctors count
-      const totalDoctorsCount = allDoctors.length;
-
-      // Format the paginated doctors data using DTO
       const formattedDoctors = paginatedDoctors.map(
-        (doctor) => new RegisteredDoctorsResponseDTO(doctor)
+        (doc) => new RegisteredDoctorsResponseDTO(doc)
       );
 
       // Logging the success
       logger.info(`Fetched registered doctors successfully`);
 
       // Calculate stats
-      const verifiedDoctorsCount = allDoctors.filter(
-        (doctor) => doctor.active
+      const verifiedDoctorsCount = paginatedDoctors.filter(
+        (doctor) =>
+          doctor.user?.active && doctor.doctor_status == request_status.accepted
       ).length;
-      const pendingApprovalCount = allDoctors.filter(
-        (doctor) => !doctor.active
+      const pendingApprovalCount = paginatedDoctors.filter(
+        (doctor) => !doctor.user?.active
       ).length;
 
-      // Determine if more data exists for pagination
       const hasMore = page * size < totalDoctorsCount;
+
+      const calcPercentage = (current: number, previous: number): number => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return Math.round(((current - previous) / previous) * 100);
+      };
 
       // Response payload
       return res.status(200).json({
         success: true,
-        message: "Register doctors fetched successfully.",
+        message: "Registered doctors fetched successfully.",
         data: {
           overall_stats: {
             doctors: {
               verified_doctors: verifiedDoctorsCount,
+              verified_doctors_increased_by:
+                verifiedStats.currentMonth > verifiedStats.previousMonth,
+              percentage: calcPercentage(
+                verifiedStats.currentMonth,
+                verifiedStats.previousMonth
+              ),
               new_requests: pendingApprovalCount,
+              new_requests_increased_by:
+                pendingStats.currentMonth > pendingStats.previousMonth,
+              new_requests_percentage: calcPercentage(
+                pendingStats.currentMonth,
+                pendingStats.previousMonth
+              ),
             },
           },
           grid_data: {
@@ -252,6 +267,8 @@ export class AdminController {
           data: updatedDoctor,
         });
       } else {
+        await adminService.rejectDoctorRegistration(doctor);
+
         await mailService.sendDoctorRejectionMail(
           doctor.user_name || "",
           doctor.user_email

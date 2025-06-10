@@ -12,7 +12,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
-import { AcceptingPatients } from "../enums";
+import { AcceptingPatients, request_status } from "../enums";
 import {
   City,
   Country,
@@ -118,6 +118,9 @@ export class DoctorDetails extends BaseEntity {
     default: AcceptingPatients.WAITING,
   })
   acceptingPatients!: AcceptingPatients;
+
+  @Column({ type: "enum", enum: request_status, default: request_status.pending })
+  doctor_status?: request_status;
 
   /////// column not created, use migrations in future
   // @Column({ type: 'text', nullable: true })

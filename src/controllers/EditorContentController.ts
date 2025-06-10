@@ -1,34 +1,40 @@
 import { Request, Response } from "express";
 import { ApiResponseDto } from "../dto/res";
 import { CreateEditorContentRequestDto } from "../dtos/admin/EditorContent/req/create.editor.content.request.dto";
-import { EditorContentService } from "../services";
 import { getUserIdFromToken } from "../middleware";
+import { EditorContentService } from "../services";
 
 const editorContentService = new EditorContentService();
 
 export class EditorContentController {
-  async createContent(req: Request, res: Response): Promise<Response> {
+  async addOrUpdateContent(req: Request, res: Response): Promise<Response> {
     try {
       const contentDto: CreateEditorContentRequestDto = req.body;
 
-      const savedContent = await editorContentService.createContent(contentDto);
+      const result = await editorContentService.addOrUpdateContent(contentDto);
 
-      if (!savedContent) {
+      if (!result) {
         return res
           .status(400)
-          .json(new ApiResponseDto(false, "Failed to create content"));
+          .json(new ApiResponseDto(false, "Failed to add or update content"));
       }
 
       return res
-        .status(201)
+        .status(200)
         .json(
-          new ApiResponseDto(true, "Content created successfully", savedContent)
+          new ApiResponseDto(
+            true,
+            result.updated
+              ? "Content updated successfully"
+              : "Content created successfully",
+            result.content
+          )
         );
     } catch (error) {
-      console.error("Error creating content:", error);
+      console.error("Error adding/updating content:", error);
       return res
         .status(500)
-        .json(new ApiResponseDto(false, "Error while saving content", error));
+        .json(new ApiResponseDto(false, "Internal server error", error));
     }
   }
 
