@@ -189,9 +189,10 @@ export class AuthController {
     try {
       const { user_email, user_password } = req.body;
 
-      // Find user by email
-      const user = await userService.findUserByEmail(user_email);
-      if (!user) {
+      // Find doctor by email
+      const doctor = await userService.findDoctorByEmail(user_email);
+      console.log("doctor", doctor)
+      if (!doctor) {
         return res.status(401).json({
           success: false,
           message: "No account found with this email",
@@ -199,7 +200,7 @@ export class AuthController {
       }
 
       // Ensure it's a doctor account
-      if (user.user_role !== UserRole.doctor) {
+      if (doctor.user?.user_role !== UserRole.doctor) {
         return res.status(401).json({
           success: false,
           message: "Access denied: not a doctor account",
@@ -207,7 +208,7 @@ export class AuthController {
       }
 
       // Validate password
-      const hashedPassword = user.user_password || "";
+      const hashedPassword = doctor.user?.user_password || "";
       const isValid = await isValidPassword(user_password, hashedPassword);
       if (!isValid) {
         return res.status(401).json({
@@ -217,7 +218,7 @@ export class AuthController {
       }
 
       // Generate JWT token
-      const token = await jwtService.generateJWT(user);
+      const token = await jwtService.generateJWT(doctor.user);
 
       return res.status(200).json({
         success: true,
@@ -226,8 +227,8 @@ export class AuthController {
           token,
           payload: {
             user_email,
-            user_id: user.id,
-            role: user.user_role,
+            doctor_id: doctor.id,
+            role: doctor.user?.user_role,
           },
         },
       });

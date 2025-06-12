@@ -1,6 +1,12 @@
 import { EntityManager } from "node_modules/typeorm";
 import { getDataSource } from "../config/database";
-import { PatientLocation, Reviews, User, Wishlist } from "../entities";
+import {
+  DoctorDetails,
+  PatientLocation,
+  Reviews,
+  User,
+  Wishlist,
+} from "../entities";
 import { user_wislist_status, UserRole } from "../enums";
 import { bcryptHash } from "../utils";
 
@@ -15,6 +21,10 @@ export class UserService {
 
   getWishlistRepository() {
     return getDataSource().getRepository(Wishlist);
+  }
+
+  getDoctorDetailsRepository() {
+    return getDataSource().getRepository(DoctorDetails);
   }
 
   async findUserByEmail(email: string): Promise<User | null> {
@@ -193,6 +203,16 @@ export class UserService {
       console.error("Error creating review:", error);
       return null;
     }
+  }
+
+  async findDoctorByEmail(email: string): Promise<DoctorDetails | null> {
+    const doctorDetailsRepo = this.getDoctorDetailsRepository();
+
+    return doctorDetailsRepo
+      .createQueryBuilder("doctorDetails")
+      .leftJoinAndSelect("doctorDetails.user", "user")
+      .where("user.user_email = :email", { email })
+      .getOne();
   }
 
   async getApprovedDoctors(): Promise<User[]> {

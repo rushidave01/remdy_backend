@@ -261,7 +261,6 @@ async getDoctorsByLocationAndRole(
     status: AcceptingPatients
   ): Promise<DoctorDetails | null> {
     const doctor = await DoctorDetails.findOne({ where: { id: doctorId } });
-
     if (!doctor) {
       throw new Error("Doctor not found.");
     }

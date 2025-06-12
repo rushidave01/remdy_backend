@@ -270,13 +270,26 @@ export class DoctorController {
             updated
           )
         );
-    } catch (error) {
-      console.error("Error updating status:", error);
-      return res
-        .status(500)
-        .json(
-          new ApiResponseDto(false, "Internal Server Error", undefined, error)
-        );
+    } catch (error: any) {
+      if (error instanceof Error && error.message === "Doctor not found.") {
+        return res
+          .status(404)
+          .json(
+            new ApiResponseDto(
+              true,
+              "Error while updating accepting status of doctor",
+              undefined,
+              error.message
+            )
+          );
+      } else {
+        console.error("Error updating status:", error);
+        return res
+          .status(500)
+          .json(
+            new ApiResponseDto(true, "Internal Server Error", undefined, error)
+          );
+      }
     }
   }
 }
