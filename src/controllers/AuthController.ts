@@ -191,7 +191,6 @@ export class AuthController {
 
       // Find doctor by email
       const doctor = await userService.findDoctorByEmail(user_email);
-      console.log("doctor", doctor)
       if (!doctor) {
         return res.status(401).json({
           success: false,

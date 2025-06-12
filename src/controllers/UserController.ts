@@ -322,20 +322,27 @@ export class UserController {
     try {
       const data: CreatePatientRequestDto = req.body;
 
-      // Step 1: Create the user
-      const user = await userService.createUser(
-        {
-          user_name: data.full_name,
-          user_email: data.patient_email,
-          user_mobile: data.phone_number
-            ? BigInt(data.phone_number)
-            : undefined,
-          user_role: UserRole.patient,
-          is_verified: false,
-          active: false,
-        },
-        queryRunner.manager
+      // Step 0: Check if user with same email
+      let user = await userService.findUserByEmail(
+        data.patient_email,
       );
+
+      // Step 1: Create the user if not found
+      if (!user) {
+        user = await userService.createUser(
+          {
+            user_name: data.full_name,
+            user_email: data.patient_email,
+            user_mobile: data.phone_number
+              ? BigInt(data.phone_number)
+              : undefined,
+            user_role: UserRole.patient,
+            is_verified: false,
+            active: false,
+          },
+          queryRunner.manager
+        );
+      }
 
       // Step 2: Fetch related entities
       const gender = await publicService.getGenderById(data.genderId);

@@ -1,5 +1,5 @@
 import { endOfWeek, format, startOfWeek } from "date-fns";
-import { Between, Like, Not } from "typeorm";
+import { Between, Like, Not, IsNull } from "typeorm";
 import { getDataSource } from "../config/database";
 import { DoctorDetails, PatientRequest, User } from "../entities";
 import { request_status, UserRole } from "../enums";
@@ -270,9 +270,13 @@ export class AdminService {
     return true;
   }
 
-  async getRegisteredPatients(
-    filterOptions: any
-  ): Promise<[PatientRequest[], PatientRequest[]]> {
+  async getRegisteredPatients(filterOptions: any): Promise<{
+    paginatedPatients: PatientRequest[];
+    allPatients: PatientRequest[];
+    newRequestStats: { currentMonth: number; previousMonth: number };
+    invitationSentStats: { currentMonth: number; previousMonth: number };
+    invitationPendingStats: { currentMonth: number; previousMonth: number };
+  }> {
     const { limit, offset } = filterOptions;
 
     const paginatedPatients = await PatientRequest.find({
@@ -288,7 +292,67 @@ export class AdminService {
       relations: ["gender", "city", "province", "user", "doctor"],
     });
 
-    return [paginatedPatients, allPatients];
+    const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const repo = getDataSource().getRepository(PatientRequest);
+
+    const newRequestStats = {
+      currentMonth: await repo.count({
+        where: {
+          request_status: request_status.pending,
+          created_at: Between(startOfThisMonth, now),
+        },
+      }),
+      previousMonth: await repo.count({
+        where: {
+          request_status: request_status.pending,
+          created_at: Between(startOfLastMonth, endOfLastMonth),
+        },
+      }),
+    };
+
+    const invitationSentStats = {
+      currentMonth: await repo.count({
+        where: {
+          sent_to: Not(IsNull()),
+          created_at: Between(startOfThisMonth, now),
+        },
+      }),
+      previousMonth: await repo.count({
+        where: {
+          sent_to: Not(IsNull()),
+          created_at: Between(startOfLastMonth, endOfLastMonth),
+        },
+      }),
+    };
+
+    const invitationPendingStats = {
+      currentMonth: await repo.count({
+        where: {
+          request_status: request_status.pending,
+          sent_to: IsNull(),
+          created_at: Between(startOfThisMonth, now),
+        },
+      }),
+      previousMonth: await repo.count({
+        where: {
+          request_status: request_status.pending,
+          sent_to: IsNull(),
+          created_at: Between(startOfLastMonth, endOfLastMonth),
+        },
+      }),
+    };
+
+    return {
+      paginatedPatients,
+      allPatients,
+      newRequestStats,
+      invitationSentStats,
+      invitationPendingStats,
+    };
   }
 
   async forwardPatients(patientIds: number[], doctorId?: number): Promise<any> {

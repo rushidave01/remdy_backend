@@ -71,7 +71,7 @@ export class MailService {
       platformName,
       email: email,
       password: password,
-      loginLink: portalLoginUrl + "/" + password, // Login URL (can be changed to exclude password in real apps)
+      loginLink: portalLoginUrl,
       supportEmail,
       senderName: "Admin",
       senderTitle: "Admin Team",

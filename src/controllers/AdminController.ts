@@ -294,9 +294,14 @@ export class AdminController {
       const size = req.query.size ? parseInt(req.query.size as string) : 10;
       const { limit, offset } = getPagination(page, size);
 
-      // Fetch paginated + all patients
-      const [paginatedPatients, allPatients] =
-        await adminService.getRegisteredPatients({ limit, offset });
+      // Fetch from service with stats
+      const {
+        paginatedPatients,
+        allPatients,
+        newRequestStats,
+        invitationSentStats,
+        invitationPendingStats,
+      } = await adminService.getRegisteredPatients({ limit, offset });
 
       const formattedPatients = paginatedPatients.map(
         (p) => new PatientRequestResponseDto(p)
@@ -305,28 +310,48 @@ export class AdminController {
       const totalPatients = allPatients.length;
       const hasMore = page * size < totalPatients;
 
-      // ----- Stats -----
-      const newRequestsCount = allPatients.filter(
-        (p) => p.request_status === request_status.pending
-      ).length;
+      // Utility function
+      const calcPercentage = (current: number, previous: number): number => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return Math.round(((current - previous) / previous) * 100);
+      };
 
-      const invitationSentCount = allPatients.filter(
-        (p) => p.sent_to !== null
-      ).length;
+      // Extract current month stats
+      const newRequestsCount = newRequestStats.currentMonth;
+      const invitationSentCount = invitationSentStats.currentMonth;
+      const invitationPendingCount = invitationPendingStats.currentMonth;
 
-      const invitationPendingCount = allPatients.filter(
-        (p) => p.request_status === request_status.pending && p.sent_to !== null
-      ).length;
-
+      // Response
       return res.status(200).json({
         success: true,
         message: "Registered patients fetched successfully.",
         data: {
-          stats: {
-            total_patients: totalPatients,
-            new_requests: newRequestsCount,
-            invitations_sent: invitationSentCount,
-            invitations_pending: invitationPendingCount,
+          overall_stats: {
+            patients: {
+              new_requests: newRequestsCount,
+              new_requests_increased_by:
+                newRequestStats.currentMonth > newRequestStats.previousMonth,
+              new_requests_percentage: calcPercentage(
+                newRequestStats.currentMonth,
+                newRequestStats.previousMonth
+              ),
+              invitations_sent: invitationSentCount,
+              invitations_sent_increased_by:
+                invitationSentStats.currentMonth >
+                invitationSentStats.previousMonth,
+              invitations_sent_percentage: calcPercentage(
+                invitationSentStats.currentMonth,
+                invitationSentStats.previousMonth
+              ),
+              invitations_pending: invitationPendingCount,
+              invitations_pending_increased_by:
+                invitationPendingStats.currentMonth >
+                invitationPendingStats.previousMonth,
+              invitations_pending_percentage: calcPercentage(
+                invitationPendingStats.currentMonth,
+                invitationPendingStats.previousMonth
+              ),
+            },
           },
           grid_data: {
             has_more: hasMore,

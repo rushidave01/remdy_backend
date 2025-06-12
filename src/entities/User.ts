@@ -9,7 +9,6 @@ import {
   Unique,
   UpdateDateColumn,
 } from "typeorm";
-
 import { Gender, UserRole, logged_in_with } from "../enums";
 import {
   DoctorDetails,
@@ -21,8 +20,7 @@ import {
 } from "./index";
 
 @Entity("users")
-@Unique("UQ_MOBILE", ["user_mobile"])
-@Unique("UQ_UUID", ["uuid"])
+@Unique("UQ_UUID", ["uuid"]) // Removed UQ_MOBILE
 export class User extends BaseEntity {
   @PrimaryGeneratedColumn("increment", { type: "bigint" })
   id!: number;
@@ -30,7 +28,7 @@ export class User extends BaseEntity {
   @Column({
     type: "enum",
     enum: UserRole,
-    default: "PATIENT",
+    default: UserRole.patient,
   })
   user_role?: UserRole;
 
@@ -52,7 +50,7 @@ export class User extends BaseEntity {
   @Column({ type: "varchar", length: 250, nullable: false })
   user_email!: string;
 
-  @Column({ type: "bigint", nullable: true })
+  @Column({ type: "bigint", nullable: true }) // Removed unique constraint
   user_mobile?: bigint;
 
   @Column({ type: "varchar", length: 250, nullable: true })
