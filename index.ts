@@ -7,6 +7,7 @@ import { errorHandler } from "./src/middleware/errorHandler";
 import { loggingMiddleware } from "./src/middleware/loggingMiddleware";
 import { responseMiddleware } from "./src/middleware/responseMiddleware";
 import {
+  handleCors,
   rateLimiter,
   setSecurityHeaders,
 } from "./src/middleware/securityMiddleware";
@@ -24,7 +25,13 @@ app.use(express_status_monitor());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(setSecurityHeaders); // Security headers
-app.use(cors()); // CORS
+app.use(
+  cors({
+    origin: "*", // use your exact frontend domain
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
 // app.use(handleCsrfProtection); // CSRF protection
 app.use(rateLimiter);
 app.use(attachJourneyId);
