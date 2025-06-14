@@ -72,7 +72,7 @@ const patientRequestSchema = Joi.object({
   full_name: Joi.string().required(),
   patient_email: Joi.string().email().required(),
   phone_number: Joi.string().required(),
-  address: Joi.string().required(),
+  address: Joi.object().required(),
   cityId: Joi.number().required(),
   provinceId: Joi.number().required(),
   pincode: Joi.string().required(),

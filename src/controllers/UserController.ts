@@ -323,9 +323,7 @@ export class UserController {
       const data: CreatePatientRequestDto = req.body;
 
       // Step 0: Check if user with same email
-      let user = await userService.findUserByEmail(
-        data.patient_email,
-      );
+      let user = await userService.findUserByEmail(data.patient_email);
 
       // Step 1: Create the user if not found
       if (!user) {
@@ -366,7 +364,7 @@ export class UserController {
           full_name: data.full_name,
           patient_email: data.patient_email,
           phone_number: data.phone_number,
-          address: data.address,
+          address: JSON.stringify(data.address),
           city,
           province,
           pincode: data.pincode,

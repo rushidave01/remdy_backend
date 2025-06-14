@@ -26,7 +26,7 @@ export class PatientRequestResponseDto {
     this.full_name = patient.full_name;
     this.patient_email = patient.patient_email;
     this.phone_number = patient.phone_number;
-    this.address = patient.address;
+    this.address = JSON.stringify(patient.address);
     this.pincode = patient.pincode;
     this.dob = patient.dob;
     this.had_family_doctor = patient.had_family_doctor;

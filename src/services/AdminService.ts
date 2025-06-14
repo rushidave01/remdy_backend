@@ -451,6 +451,9 @@ export class AdminService {
 
     rawDayCounts.forEach((row) => {
       const dayName = format(new Date(row.day), "EEEE");
+      if (!dayWise[dayName]) {
+        dayWise[dayName] = { count: 0, percentageOfWeek: 0 };
+      }
       dayWise[dayName].count = Number(row.count);
     });
 

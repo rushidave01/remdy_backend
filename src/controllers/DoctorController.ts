@@ -292,4 +292,33 @@ export class DoctorController {
       }
     }
   }
+
+  async getDoctorDashboardSummary(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
+    const doctorId = Number(req.params.doctorId);
+    if (!doctorId) {
+      return res
+        .status(400)
+        .json(new ApiResponseDto(false, "Doctor ID is required"));
+    }
+
+    try {
+      const data = await doctorService.getDoctorDashboardSummary(doctorId);
+
+      return res
+        .status(200)
+        .json(
+          new ApiResponseDto(true, "Doctor dashboard summary fetched", data)
+        );
+    } catch (error) {
+      console.error("Doctor dashboard summary error:", error);
+      return res
+        .status(500)
+        .json(
+          new ApiResponseDto(false, "Internal server error", undefined, error)
+        );
+    }
+  }
 }

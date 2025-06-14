@@ -92,7 +92,7 @@ async getDoctorsByLocationAndRole(
       )
       .getCount();
 
-      // Add reviews count and average rating for each doctor
+    // Add reviews count and average rating for each doctor
     const doctorsWithReviews = doctorsQuery.map((doctor) => {
       const reviews = doctor.user.reviews || [];
 
@@ -267,5 +267,68 @@ async getDoctorsByLocationAndRole(
 
     doctor.acceptingPatients = status;
     return await doctor.save();
+  }
+
+  async getDoctorDashboardSummary(doctorId: number) {
+    try {
+      // ⭐ 1. Average Rating
+      const avgResult = await Reviews.createQueryBuilder("review")
+        .select("AVG(review.rating)", "avgRating")
+        .where("review.doctor_id = :doctorId", { doctorId })
+        .getRawOne();
+
+      const avgRating = avgResult?.avgRating
+        ? Number(avgResult.avgRating).toFixed(1)
+        : null;
+
+      // 👥 2. Patients by Gender (fixed: direct column, no join)
+      const genderCounts =
+        (await PatientRequest.createQueryBuilder("pr")
+          .select("pr.gender", "gender")
+          .addSelect("COUNT(*)", "count")
+          .where("pr.sent_to = :doctorId", { doctorId })
+          .andWhere("pr.deleted_at IS NULL")
+          .groupBy("pr.gender")
+          .getRawMany()) || [];
+
+      // 🌍 3. Patients by City from JSON Address
+      const cityCounts =
+        (await PatientRequest.createQueryBuilder("pr")
+          .select("(pr.address::jsonb->>'city')", "city")
+          .addSelect("COUNT(*)", "count")
+          .where("pr.sent_to = :doctorId", { doctorId })
+          .andWhere("pr.deleted_at IS NULL")
+          .groupBy("city")
+          .getRawMany()) || [];
+
+      // 🏙️ 4. Top City by Patient Count
+      const maxCityRow = cityCounts.reduce(
+        (max, row) => (Number(row.count) > Number(max.count) ? row : max),
+        { city: null, count: 0 }
+      );
+
+      return {
+        averageRating: avgRating,
+        genderDistribution: genderCounts.map((g) => ({
+          gender: g.gender || "Unknown",
+          count: Number(g.count),
+        })),
+        patientsByCity: cityCounts.map((c) => ({
+          city: c.city || "Unknown",
+          count: Number(c.count),
+        })),
+        topCity: maxCityRow.city
+          ? { city: maxCityRow.city, count: Number(maxCityRow.count) }
+          : null,
+      };
+    } catch (error) {
+      console.error("Error generating doctor dashboard summary:", error);
+      return {
+        averageRating: null,
+        genderDistribution: [],
+        patientsByCity: [],
+        topCity: null,
+      };
+    }
   }
 }
