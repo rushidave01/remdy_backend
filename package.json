@@ -5,7 +5,7 @@
   "main": "dist/index.ts",
   "scripts": {
     "start": "node dist/index.js",
-    "build": "tsc",
+    "build": "tsc && cp -r src/assets dist/src",
     "dev": "ts-node-dev index.ts",
     "migration:generate": "npx ts-node node_modules/.bin/typeorm migration:generate src/migrations/changed-id_type_to_number_from_bigint-allEntity -d src/config/database ",
     "migration:create": "npx ts-node node_modules/.bin/typeorm migration:create src/migrations/added-country_id-StateEntity",
@@ -63,6 +63,7 @@
     "@types/node": "^20.14.10",
     "@types/nodemailer": "^6.4.17",
     "@types/sequelize": "^4.28.20",
+    "@types/socket.io-parser": "^2.2.1",
     "@types/uuid": "^10.0.0",
     "express-status-monitor": "^1.2.3",
     "nodemon": "^3.1.4",
