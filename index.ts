@@ -25,7 +25,11 @@ app.use(express_status_monitor());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(setSecurityHeaders); // Security headers
-const allowedOrigins = ["http://localhost:3000", "https://your-prod-domain.com"];
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://remdy-admin.pixelpulseconsultancy.com",
+];
 
 app.use(
   cors({
