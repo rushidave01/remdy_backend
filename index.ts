@@ -25,13 +25,21 @@ app.use(express_status_monitor());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(setSecurityHeaders); // Security headers
+const allowedOrigins = ["http://localhost:3000", "https://your-prod-domain.com"];
+
 app.use(
   cors({
-    origin: "*", // use your exact frontend domain
-    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
+
 // app.use(handleCsrfProtection); // CSRF protection
 app.use(rateLimiter);
 app.use(attachJourneyId);
