@@ -28,6 +28,7 @@ app.use(setSecurityHeaders); // Security headers
 
 const allowedOrigins = [
   "http://localhost:3000",
+  "http://localhost:4200",
   "http://remdy-admin.pixelpulseconsultancy.com",
 ];
 
