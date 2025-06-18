@@ -8,9 +8,9 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
 } from "typeorm";
-import { has_family_doctor, request_status } from "../enums";
+import { has_family_doctor, InvitationSent, request_status } from "../enums";
 import {
   City,
   Country,
@@ -65,6 +65,13 @@ export class PatientRequest extends BaseEntity {
 
   @Column({ type: "varchar", length: 20, nullable: true })
   pincode?: string;
+
+  @Column({
+    type: "enum",
+    enum: InvitationSent,
+    default: InvitationSent.SEND_INVITE,
+  })
+  invitation_sent?: InvitationSent;
 
   @ManyToOne(() => Gender, (gender) => gender.patient_request, {
     nullable: true,

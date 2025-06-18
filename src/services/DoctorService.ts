@@ -1,4 +1,5 @@
 // doctor.service.ts
+import { SendInviteToPatientDto } from "src/dtos/doctor/req/send.invite.patient.request.dto";
 import { getDataSource } from "../config/database";
 import {
   GetDoctorsByPostalCodeDto,
@@ -8,9 +9,12 @@ import {
 import { PatientRequest, Reviews } from "../entities";
 import { DoctorDetails } from "../entities/DoctorDetails";
 import { User } from "../entities/User";
-import { AcceptingPatients, UserRole } from "../enums";
+import { AcceptingPatients, InvitationSent, UserRole } from "../enums";
+import { MailService } from "../utils";
 
 export class DoctorService {
+  mailService = new MailService();
+
   // Do not remove comment - Roop
   /*  private userRepository: Repository<User> = User;
 
@@ -330,5 +334,38 @@ async getDoctorsByLocationAndRole(
         topCity: null,
       };
     }
+  }
+
+  public async sendInviteToPatient({
+    doctorId,
+    patientId,
+    patientEmail,
+    emailSubject,
+    emailContent,
+  }: SendInviteToPatientDto): Promise<void> {
+    const doctor = await DoctorDetails.findOne({
+      where: { id: doctorId },
+      relations: ["user"],
+    });
+
+    if (!doctor || !doctor.user || !doctor.user.user_name) {
+      throw new Error("Doctor or associated user not found.");
+    }
+
+    const doctorName = doctor.user.user_name;
+
+    // Send the invitation email
+    await this.mailService.sendEmail(
+      patientEmail,
+      emailSubject,
+      emailContent,
+      doctorName
+    );
+
+    // Update patient request with SENT status
+    await PatientRequest.update(
+      { id: patientId },
+      { invitation_sent: InvitationSent.SENT }
+    );
   }
 }

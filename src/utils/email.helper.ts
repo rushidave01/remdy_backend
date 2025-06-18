@@ -32,13 +32,16 @@ export class MailService {
   }
 
   // Core function to send an email using the transporter
-  private async sendEmail(
+  public async sendEmail(
     to: string,
     subject: string,
-    html: string
+    html: string,
+    from?: string
   ): Promise<nodemailer.SentMessageInfo> {
+    const senderName = from || process.env.APP_NAME;
+
     const mailOptions = {
-      from: `"${process.env.APP_NAME}">`, // Sender name (configured)
+      from: `"${senderName}"`, // Sender name
       to, // Recipient email
       subject, // Email subject
       html, // Email content in HTML

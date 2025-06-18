@@ -47,3 +47,8 @@ export enum AcceptingPatients {
   WAITING = "WAITING",
   NOT_ACCEPTING = "NOT_ACCEPTING",
 }
+
+export enum InvitationSent {
+  SENT = "SENT",
+  SEND_INVITE = "SEND_INVITE",
+}

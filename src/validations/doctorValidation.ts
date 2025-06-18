@@ -31,6 +31,14 @@ const updateAcceptingPatientsStatusSchema = Joi.object({
     .required(),
 });
 
+const sendInviteToPatientSchema = Joi.object({
+  doctorId: Joi.number().integer().required(),
+  patientId: Joi.number().integer().required(),
+  patientEmail: Joi.string().email().required(),
+  emailSubject: Joi.string().max(255).required(),
+  emailContent: Joi.string().required(), // HTML content can be validated more if needed
+});
+
 // Middleware to validate doctor registration request
 export const validateDoctorRegisterSchema = async (
   req: Request,
@@ -90,6 +98,34 @@ export const validateUpdateAcceptingPatientsStatus = async (
 ) => {
   try {
     await updateAcceptingPatientsStatusSchema.validateAsync(req.body, {
+      abortEarly: false,
+    });
+    next();
+  } catch (error) {
+    if (error instanceof Joi.ValidationError) {
+      return res.status(422).json({
+        success: false,
+        message: "Validation error",
+        error: error.message,
+        data: null,
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred during validation",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+};
+
+export const validateSendInviteToPatient = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    await sendInviteToPatientSchema.validateAsync(req.body, {
       abortEarly: false,
     });
     next();

@@ -1,6 +1,7 @@
 // src/controllers/UserController.ts
 
 import { Request, Response } from "express";
+import { SendInviteToPatientDto } from "src/dtos/doctor/req/send.invite.patient.request.dto";
 import { UpdateAcceptingPatientsStatusDto } from "src/dtos/doctor/req/update.doctor.details.request.dto";
 import { ApiResponseDto } from "../dto/res";
 import { GetDoctorsbyIdDto } from "../dtos/user/doctorDto";
@@ -318,6 +319,42 @@ export class DoctorController {
         .status(500)
         .json(
           new ApiResponseDto(false, "Internal server error", undefined, error)
+        );
+    }
+  }
+
+  async sendInviteToPatient(req: Request, res: Response): Promise<Response> {
+    try {
+      const {
+        doctorId,
+        patientId,
+        patientEmail,
+        emailSubject,
+        emailContent,
+      }: SendInviteToPatientDto = req.body;
+
+      await doctorService.sendInviteToPatient({
+        doctorId,
+        patientId,
+        patientEmail,
+        emailSubject,
+        emailContent,
+      });
+
+      return res
+        .status(200)
+        .json(new ApiResponseDto(true, "Invitation sent successfully."));
+    } catch (error: any) {
+      console.error("Error sending invitation:", error);
+      return res
+        .status(500)
+        .json(
+          new ApiResponseDto(
+            false,
+            "Failed to send invitation.",
+            undefined,
+            error.message
+          )
         );
     }
   }
